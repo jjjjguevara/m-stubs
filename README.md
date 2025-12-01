@@ -74,14 +74,14 @@ All features from the original Enhanced Annotations plugin remain:
 3. Install and enable
 
 ### Manual Installation
-1. Download the latest release from [GitHub Releases](https://github.com/jjjjguevara/m-stubs/releases)
+1. Download the latest release from [GitHub Releases](https://github.com/jjjjguevara/obsidian-enhanced-annotations/releases)
 2. Extract to your vault's `.obsidian/plugins/m-stubs/` folder
 3. Enable the plugin in Settings → Community Plugins
 
 ### Building from Source
 ```bash
-git clone https://github.com/jjjjguevara/m-stubs.git
-cd m-stubs
+git clone https://github.com/jjjjguevara/obsidian-enhanced-annotations.git
+cd obsidian-enhanced-annotations
 npm install
 npm run build
 ```
