@@ -1,8 +1,8 @@
-# M-Stubs
+# Doc Doctor
 
 A vector-based stubs system for [Obsidian](https://obsidian.md) that enables tracking document gaps, quality control, and editorial workflows. Built on the [J-Editorial Framework](https://jjjjguevara.vercel.app/j-editorial) principles.
 
-> **Fork Notice**: M-Stubs is a fork of [Enhanced Annotations](https://github.com/ycnmhd/obsidian-enhanced-annotations) by [ycnmhd](https://github.com/ycnmhd). The original plugin provides excellent comment/highlight management features which remain fully functional in this fork. M-Stubs extends these capabilities with a comprehensive stubs system for document quality tracking.
+> **Fork Notice**: Doc Doctor is a fork of [Enhanced Annotations](https://github.com/ycnmhd/obsidian-enhanced-annotations) by [ycnmhd](https://github.com/ycnmhd). The original plugin provides excellent comment/highlight management features which remain fully functional in this fork. Doc Doctor extends these capabilities with a comprehensive stubs system for document quality tracking.
 
 ## What are Stubs?
 
@@ -15,7 +15,7 @@ Stubs are **dynamic demand signals** that function as editorial vectors—not ju
 
 ### Stub Types
 
-M-Stubs supports configurable stub types out of the box:
+Doc Doctor supports configurable stub types out of the box:
 
 | Type | Purpose | Example |
 |:-----|:--------|:--------|
@@ -70,18 +70,18 @@ All features from the original Enhanced Annotations plugin remain:
 
 ### From Obsidian Community Plugins (Coming Soon)
 1. Open Settings → Community Plugins
-2. Search for "M-Stubs"
+2. Search for "Doc Doctor"
 3. Install and enable
 
 ### Manual Installation
-1. Download the latest release from [GitHub Releases](https://github.com/jjjjguevara/m-stubs/releases)
-2. Extract to your vault's `.obsidian/plugins/m-stubs/` folder
+1. Download the latest release from [GitHub Releases](https://github.com/jjjjguevara/doc-doctor/releases)
+2. Extract to your vault's `.obsidian/plugins/doc-doctor/` folder
 3. Enable the plugin in Settings → Community Plugins
 
 ### Building from Source
 ```bash
-git clone https://github.com/jjjjguevara/m-stubs.git
-cd m-stubs
+git clone https://github.com/jjjjguevara/doc-doctor.git
+cd doc-doctor
 npm install
 npm run build
 ```
@@ -91,7 +91,7 @@ npm run build
 ### Quick Start (2 Minutes)
 
 1. **Create your first stub**: Type `^^` in your document, select a stub type
-2. **View in sidebar**: Click the M-Stubs icon in the left ribbon
+2. **View in sidebar**: Click the Doc Doctor icon in the left ribbon
 3. **Navigate**: Click a stub to jump to its location
 
 ### Stub Syntax
@@ -133,7 +133,7 @@ stubs:
 
 ### Configuration
 
-Access settings via **Settings → M-Stubs** or the gear icon in the stubs sidebar panel.
+Access settings via **Settings → Doc Doctor** or the gear icon in the stubs sidebar panel.
 
 #### Stub Types
 - Add/remove/reorder stub types
@@ -147,11 +147,11 @@ Access settings via **Settings → M-Stubs** or the gear icon in the stubs sideb
 
 ## J-Editorial Framework Integration
 
-M-Stubs implements the [J-Editorial Stubs Standard](https://jjjjguevara.vercel.app/j-editorial/framework/02-practice/stubs/spec-stubs-standard), a comprehensive quality control framework for knowledge management.
+Doc Doctor implements the [J-Editorial Stubs Standard](https://jjjjguevara.vercel.app/j-editorial/framework/02-practice/stubs/spec-stubs-standard), a comprehensive quality control framework for knowledge management.
 
 ### Three-Layer Architecture
 
-| Layer | Description | M-Stubs Support |
+| Layer | Description | Doc Doctor Support |
 |:------|:------------|:----------------|
 | **L1: Intrinsic** | What stubs ARE (stored in frontmatter) | ✅ Full support |
 | **L2: Extrinsic** | What stubs MEAN (calculated dimensions) | 🔄 Dashboard integration |
@@ -186,7 +186,7 @@ Stubs affect document refinement scores:
 - **New**: Multi-select type filter and position-based sorting
 - **New**: View state persistence across sessions
 - **New**: Structured property configuration
-- Renamed from Enhanced Annotations to M-Stubs
+- Renamed from Enhanced Annotations to Doc Doctor
 
 ### v0.1.x (Original Enhanced Annotations)
 See [original changelog](https://github.com/ycnmhd/obsidian-enhanced-annotations/releases)
@@ -199,7 +199,7 @@ See [original changelog](https://github.com/ycnmhd/obsidian-enhanced-annotations
 The core annotation features (sidebar view, note creation, custom styling, auto-complete) are the work of ycnmhd. This fork builds upon that excellent foundation.
 
 ### Fork Author
-**[Josué Guevara](https://github.com/jjjjguevara)** - Creator of M-Stubs extension
+**[Josué Guevara](https://github.com/jjjjguevara)** - Creator of Doc Doctor
 
 The stubs system, J-Editorial integration, and related features were developed as part of the J-Editorial Framework project.
 
