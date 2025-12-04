@@ -3,6 +3,7 @@ import {
     CommentFormat,
     DefaultFolderMode,
     DefaultPalette,
+    DiagnosticStatus,
     FontFamily,
     FontWeight,
     NotesNamingMode,
@@ -21,6 +22,8 @@ import { LLMSettingsActions, llmSettingsReducer } from '../llm/llm-settings-redu
 import { MCPSettingsActions, mcpSettingsReducer } from '../mcp/mcp-settings-reducer';
 import { PromptsSettingsActions, promptsSettingsReducer } from '../llm/prompts-settings-reducer';
 import { SmartConnectionsSettingsActions, smartConnectionsSettingsReducer } from '../smart-connections/settings-reducer';
+import { ProvidersSettingsActions, providersSettingsReducer } from '../llm/providers';
+import { CARD_PRESETS, type CardPreset, type CardRegion } from '../shared/types/segmented-card-types';
 
 export type SettingsActions =
     | {
@@ -148,11 +151,25 @@ export type SettingsActions =
     | { type: 'SET_FEATURE_STUBS'; payload: { enabled: boolean } }
     | { type: 'SET_FEATURE_AI'; payload: { enabled: boolean } }
     | { type: 'SET_FEATURE_EXPLORE'; payload: { enabled: boolean } }
+    // Diagnostic actions
+    | { type: 'SET_DIAGNOSTIC_LLM'; payload: { status: DiagnosticStatus; message?: string } }
+    | { type: 'SET_DIAGNOSTIC_MCP'; payload: { status: DiagnosticStatus; message?: string; version?: string } }
+    | { type: 'SET_DIAGNOSTIC_SMART_CONNECTIONS'; payload: { status: DiagnosticStatus; message?: string } }
+    | { type: 'SET_DIAGNOSTIC_OBSIDIAN_GIT'; payload: { status: DiagnosticStatus; message?: string; version?: string } }
+    | { type: 'SET_DIAGNOSTIC_DATAVIEW'; payload: { status: DiagnosticStatus; message?: string; version?: string } }
+    // Card segmentation actions
+    | { type: 'SET_CARD_SEGMENTATION_ENABLED'; payload: { enabled: boolean } }
+    | { type: 'SET_CARD_SEGMENTATION_SHOW_LABELS'; payload: { showLabels: boolean } }
+    | { type: 'SET_CARD_SEGMENTATION_SHOW_SEPARATORS'; payload: { showSeparators: boolean } }
+    | { type: 'SET_CARD_SEGMENTATION_PRESET'; payload: { preset: CardPreset } }
+    | { type: 'SET_CARD_REGION_COMMAND'; payload: { regionIndex: number; commandId: string; preset: CardPreset } }
+    | { type: 'SET_CARD_CUSTOM_REGIONS'; payload: { regions: CardRegion[] } }
     | StubsSettingsActions
     | LLMSettingsActions
     | MCPSettingsActions
     | PromptsSettingsActions
-    | SmartConnectionsSettingsActions;
+    | SmartConnectionsSettingsActions
+    | ProvidersSettingsActions;
 
 const updateState = (store: Settings, action: SettingsActions) => {
     const labels = store.decoration.styles.labels;
@@ -266,6 +283,114 @@ const updateState = (store: Settings, action: SettingsActions) => {
         store.features.ai = action.payload.enabled;
     } else if (action.type === 'SET_FEATURE_EXPLORE') {
         store.features.explore = action.payload.enabled;
+    } else if (action.type === 'SET_DIAGNOSTIC_LLM') {
+        if (!store.diagnostics) {
+            store.diagnostics = {
+                llm: { status: 'untested', lastTested: null },
+                mcp: { status: 'untested', lastTested: null },
+                smartConnections: { status: 'untested', lastTested: null },
+                obsidianGit: { status: 'untested', lastTested: null },
+                dataview: { status: 'untested', lastTested: null },
+            };
+        }
+        store.diagnostics.llm = {
+            status: action.payload.status,
+            lastTested: action.payload.status !== 'testing' ? Date.now() : store.diagnostics.llm.lastTested,
+            message: action.payload.message,
+        };
+    } else if (action.type === 'SET_DIAGNOSTIC_MCP') {
+        if (!store.diagnostics) {
+            store.diagnostics = {
+                llm: { status: 'untested', lastTested: null },
+                mcp: { status: 'untested', lastTested: null },
+                smartConnections: { status: 'untested', lastTested: null },
+                obsidianGit: { status: 'untested', lastTested: null },
+                dataview: { status: 'untested', lastTested: null },
+            };
+        }
+        store.diagnostics.mcp = {
+            status: action.payload.status,
+            lastTested: action.payload.status !== 'testing' ? Date.now() : store.diagnostics.mcp.lastTested,
+            message: action.payload.message,
+            version: action.payload.version || store.diagnostics.mcp.version,
+        };
+    } else if (action.type === 'SET_DIAGNOSTIC_SMART_CONNECTIONS') {
+        if (!store.diagnostics) {
+            store.diagnostics = {
+                llm: { status: 'untested', lastTested: null },
+                mcp: { status: 'untested', lastTested: null },
+                smartConnections: { status: 'untested', lastTested: null },
+                obsidianGit: { status: 'untested', lastTested: null },
+                dataview: { status: 'untested', lastTested: null },
+            };
+        }
+        store.diagnostics.smartConnections = {
+            status: action.payload.status,
+            lastTested: action.payload.status !== 'testing' ? Date.now() : store.diagnostics.smartConnections.lastTested,
+            message: action.payload.message,
+        };
+    } else if (action.type === 'SET_DIAGNOSTIC_OBSIDIAN_GIT') {
+        if (!store.diagnostics) {
+            store.diagnostics = {
+                llm: { status: 'untested', lastTested: null },
+                mcp: { status: 'untested', lastTested: null },
+                smartConnections: { status: 'untested', lastTested: null },
+                obsidianGit: { status: 'untested', lastTested: null },
+                dataview: { status: 'untested', lastTested: null },
+            };
+        }
+        store.diagnostics.obsidianGit = {
+            status: action.payload.status,
+            lastTested: action.payload.status !== 'testing' ? Date.now() : store.diagnostics.obsidianGit.lastTested,
+            message: action.payload.message,
+            version: action.payload.version || store.diagnostics.obsidianGit.version,
+        };
+    } else if (action.type === 'SET_DIAGNOSTIC_DATAVIEW') {
+        if (!store.diagnostics) {
+            store.diagnostics = {
+                llm: { status: 'untested', lastTested: null },
+                mcp: { status: 'untested', lastTested: null },
+                smartConnections: { status: 'untested', lastTested: null },
+                obsidianGit: { status: 'untested', lastTested: null },
+                dataview: { status: 'untested', lastTested: null },
+            };
+        }
+        store.diagnostics.dataview = {
+            status: action.payload.status,
+            lastTested: action.payload.status !== 'testing' ? Date.now() : store.diagnostics.dataview.lastTested,
+            message: action.payload.message,
+            version: action.payload.version || store.diagnostics.dataview.version,
+        };
+    } else if (action.type === 'SET_CARD_SEGMENTATION_ENABLED') {
+        store.cardSegmentation.enabled = action.payload.enabled;
+    } else if (action.type === 'SET_CARD_SEGMENTATION_SHOW_LABELS') {
+        store.cardSegmentation.showLabelsOnHover = action.payload.showLabels;
+    } else if (action.type === 'SET_CARD_SEGMENTATION_SHOW_SEPARATORS') {
+        store.cardSegmentation.showSeparators = action.payload.showSeparators;
+    } else if (action.type === 'SET_CARD_SEGMENTATION_PRESET') {
+        store.cardSegmentation.defaultPreset = action.payload.preset;
+        // When switching to a non-custom preset, copy regions to customRegions for reference
+        if (action.payload.preset !== 'custom') {
+            store.cardSegmentation.customRegions = [...CARD_PRESETS[action.payload.preset]];
+        }
+    } else if (action.type === 'SET_CARD_REGION_COMMAND') {
+        const { regionIndex, commandId, preset } = action.payload;
+        // Update the command ID in the current regions
+        if (preset === 'custom') {
+            if (store.cardSegmentation.customRegions[regionIndex]) {
+                store.cardSegmentation.customRegions[regionIndex].commandId = commandId;
+            }
+        } else {
+            // For presets, we need to copy to customRegions to preserve customizations
+            if (!store.cardSegmentation.customRegions.length) {
+                store.cardSegmentation.customRegions = [...CARD_PRESETS[preset]];
+            }
+            if (store.cardSegmentation.customRegions[regionIndex]) {
+                store.cardSegmentation.customRegions[regionIndex].commandId = commandId;
+            }
+        }
+    } else if (action.type === 'SET_CARD_CUSTOM_REGIONS') {
+        store.cardSegmentation.customRegions = action.payload.regions;
     } else if (action.type.startsWith('STUBS_')) {
         // Delegate stubs actions to stubs reducer
         stubsSettingsReducer(store.stubs, action as StubsSettingsActions);
@@ -281,6 +406,9 @@ const updateState = (store: Settings, action: SettingsActions) => {
     } else if (action.type.startsWith('SET_SMART_CONNECTIONS_')) {
         // Delegate Smart Connections actions to smart connections reducer
         smartConnectionsSettingsReducer(store.smartConnections, action as SmartConnectionsSettingsActions);
+    } else if (action.type.startsWith('PROVIDERS_')) {
+        // Delegate providers actions to providers reducer
+        providersSettingsReducer(store.providers, action as ProvidersSettingsActions);
     }
 };
 export const settingsReducer = (

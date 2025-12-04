@@ -90,9 +90,9 @@ export const BUILT_IN_TEMPLATES: PromptTemplate[] = [
 // =============================================================================
 
 /**
- * Supported LLM providers (Phase 1: Anthropic and OpenAI)
+ * Supported LLM providers
  */
-export type LLMProvider = 'anthropic' | 'openai';
+export type LLMProvider = 'anthropic' | 'openai' | 'gemini';
 
 /**
  * LLM configuration stored in plugin settings
@@ -104,8 +104,11 @@ export interface LLMConfiguration {
     /** Selected LLM provider */
     provider: LLMProvider;
 
-    /** API key (stored in plugin settings) */
+    /** API key for currently selected provider (computed from apiKeys) */
     apiKey: string;
+
+    /** API keys stored per provider */
+    apiKeys: Record<LLMProvider, string>;
 
     /**
      * Model identifier
@@ -199,6 +202,12 @@ export interface LLMConfiguration {
      * @default ""
      */
     customTemplatesPath: string;
+
+    /**
+     * Cached models fetched from provider APIs
+     * Updated on first session request or manual refresh
+     */
+    cachedModels?: CachedModels;
 }
 
 /**
@@ -356,6 +365,44 @@ export interface SuggestedStub {
 
     /** Explanation for why this stub was suggested */
     rationale: string;
+
+    /**
+     * Explicit reasoning explaining WHY this gap matters
+     * Displayed prominently to help user understand importance
+     */
+    reasoning?: string;
+}
+
+// =============================================================================
+// ACTIONABLE SUGGESTIONS
+// =============================================================================
+
+/**
+ * Actions that can be performed on a suggestion
+ */
+export type SuggestionAction =
+    | { type: 'remove_stub'; stubIndex: number }
+    | { type: 'add_text'; position: 'before' | 'after' | 'replace'; lineNumber: number; text: string }
+    | { type: 'modify_frontmatter'; property: string; value: unknown }
+    | { type: 'add_reference'; reference: string; referenceType: 'vault' | 'web' }
+    | { type: 'add_tag'; tag: string }
+    | { type: 'add_related'; notePath: string };
+
+/**
+ * Suggestion with concrete actions that can be executed
+ */
+export interface ActionableSuggestion extends SuggestedStub {
+    /** Unique ID for tracking in UI */
+    id: string;
+
+    /** Actions to perform when accepting this suggestion */
+    actions: SuggestionAction[];
+
+    /** Whether this suggestion has been accepted */
+    accepted?: boolean;
+
+    /** Whether this suggestion has been rejected */
+    rejected?: boolean;
 }
 
 /**
@@ -515,6 +562,11 @@ export const DEFAULT_LLM_CONFIGURATION = (): LLMConfiguration => ({
     enabled: false,
     provider: 'anthropic',
     apiKey: '',
+    apiKeys: {
+        anthropic: '',
+        openai: '',
+        gemini: '',
+    },
     model: 'claude-sonnet-4-20250514',
     maxTokens: 4096,
     temperature: 0.3,
@@ -550,9 +602,36 @@ export const DEFAULT_LLM_CONFIGURATION = (): LLMConfiguration => ({
 });
 
 /**
- * Available models by provider
+ * Model info structure
  */
-export const AVAILABLE_MODELS: Record<LLMProvider, Array<{ id: string; name: string; recommended?: boolean }>> = {
+export interface ModelInfo {
+    id: string;
+    name: string;
+    recommended?: boolean;
+}
+
+/**
+ * Cached models for a provider
+ */
+export interface CachedProviderModels {
+    models: ModelInfo[];
+    fetchedAt: number; // Unix timestamp
+}
+
+/**
+ * Cached models storage
+ */
+export interface CachedModels {
+    anthropic?: CachedProviderModels;
+    openai?: CachedProviderModels;
+    gemini?: CachedProviderModels;
+    sessionRefreshed?: boolean; // Flag to track if refreshed this session
+}
+
+/**
+ * Default/fallback models by provider (used when API fetch fails)
+ */
+export const DEFAULT_MODELS: Record<LLMProvider, ModelInfo[]> = {
     anthropic: [
         { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', recommended: true },
         { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
@@ -562,7 +641,18 @@ export const AVAILABLE_MODELS: Record<LLMProvider, Array<{ id: string; name: str
         { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
         { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
     ],
+    gemini: [
+        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', recommended: true },
+        { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+        { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+    ],
 };
+
+/**
+ * Available models by provider
+ * @deprecated Use getCachedModels() or DEFAULT_MODELS instead
+ */
+export const AVAILABLE_MODELS: Record<LLMProvider, ModelInfo[]> = DEFAULT_MODELS;
 
 /**
  * Error messages with suggested actions

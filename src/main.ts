@@ -43,6 +43,12 @@ import { MCPClient, MCPTools } from './mcp';
 // Smart Connections imports
 import { SmartConnectionsService, createSmartConnectionsService } from './smart-connections';
 
+// Model fetch service for session refresh
+import { refreshAllCachedModels } from './llm/model-fetch-service';
+
+// Schema loader for J-Editorial schema
+import { SchemaLoader } from './schema/schema-loader';
+
 export default class LabeledAnnotations extends Plugin {
     outline: OutlineUpdater;
     settings: Store<Settings, SettingsActions>;
@@ -54,6 +60,8 @@ export default class LabeledAnnotations extends Plugin {
     mcpClient: MCPClient | null = null;
     mcpTools: MCPTools | null = null;
     smartConnectionsService: SmartConnectionsService | null = null;
+    schemaLoader: SchemaLoader | null = null;
+    settingsTab: SettingsTab | null = null;
     private unsubscribeCallbacks: Set<() => void> = new Set();
     private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     private syncDebounceDelay = 150; // ms
@@ -98,13 +106,61 @@ export default class LabeledAnnotations extends Plugin {
             await this.attachLeaf();
             loadOutlineStateFromSettings(this);
             this.registerSubscription(...subscribeSettingsToOutlineState(this));
-            this.addSettingTab(new SettingsTab(this.app, this));
+
+            // Initialize schema loader before settings tab
+            await this.initializeSchemaLoader();
+
+            this.settingsTab = new SettingsTab(this.app, this);
+            this.addSettingTab(this.settingsTab);
             registerEditorMenuEvent(this);
             this.outline = new OutlineUpdater(this);
             this.statusBar = new StatusBar(this);
             tts.setPlugin(this);
             this.idling = new Idling(this);
+
+            // Refresh LLM models on session start (if enabled and has API keys)
+            this.refreshModelsOnSessionStart();
         });
+    }
+
+    /**
+     * Refresh cached models on first session load
+     * Only runs once per session if LLM is enabled and API keys are configured
+     */
+    private async refreshModelsOnSessionStart(): Promise<void> {
+        const settings = this.settings.getValue();
+        const llmConfig = settings.llm;
+
+        // Skip if LLM not enabled or already refreshed this session
+        if (!llmConfig.enabled || llmConfig.cachedModels?.sessionRefreshed) {
+            return;
+        }
+
+        // Check if we have any API keys configured
+        const apiKeys = llmConfig.apiKeys || { anthropic: '', openai: '', gemini: '' };
+        const hasAnyKey = Object.values(apiKeys).some(key => key.length > 0);
+
+        if (!hasAnyKey) {
+            return;
+        }
+
+        console.log('[Doc Doctor] Refreshing LLM models for new session...');
+
+        try {
+            const updatedCache = await refreshAllCachedModels(
+                apiKeys,
+                llmConfig.cachedModels,
+            );
+
+            this.settings.dispatch({
+                type: 'LLM_SET_CACHED_MODELS',
+                payload: { cachedModels: updatedCache },
+            });
+
+            console.log('[Doc Doctor] LLM models refreshed successfully');
+        } catch (error) {
+            console.warn('[Doc Doctor] Failed to refresh LLM models:', error);
+        }
     }
 
     onunload() {
@@ -298,6 +354,22 @@ export default class LabeledAnnotations extends Plugin {
             }
         } catch (error) {
             console.error('[Doc Doctor] Failed to initialize Smart Connections:', error);
+        }
+    }
+
+    /**
+     * Initialize J-Editorial Schema Loader
+     */
+    async initializeSchemaLoader(): Promise<void> {
+        try {
+            this.schemaLoader = new SchemaLoader(this.app);
+            await this.schemaLoader.initialize();
+
+            const source = this.schemaLoader.getSchemaSource();
+            const schema = this.schemaLoader.getSchema();
+            console.log(`[Doc Doctor] Schema loaded: ${source} (v${schema.version})`);
+        } catch (error) {
+            console.error('[Doc Doctor] Failed to initialize schema loader:', error);
         }
     }
 

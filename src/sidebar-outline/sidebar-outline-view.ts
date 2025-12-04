@@ -9,7 +9,7 @@ export const SIDEBAR_OUTLINE_VIEW_TYPE = 'annotations-outline';
 export class SidebarOutlineView extends ItemView {
     component: SidebarOutline | undefined;
 
-    icon = 'messages-square';
+    icon = 'briefcase-medical';
 
     constructor(
         leaf: WorkspaceLeaf,

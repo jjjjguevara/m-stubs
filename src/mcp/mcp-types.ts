@@ -324,6 +324,121 @@ export interface BlockingStubsResult {
 }
 
 // =============================================================================
+// SEARCH TYPES
+// =============================================================================
+
+/**
+ * Search provider types
+ */
+export type SearchProvider = 'vault' | 'smart-connections' | 'openalex' | 'web';
+
+/**
+ * Unified search result
+ */
+export interface SearchResult {
+    /** Unique identifier */
+    id: string;
+    /** Result title */
+    title: string;
+    /** Source provider */
+    provider: SearchProvider;
+    /** Relevance score (0-1) */
+    score: number;
+    /** Result snippet or excerpt */
+    snippet?: string;
+    /** Full content if available */
+    content?: string;
+    /** URL or path */
+    url?: string;
+    /** Additional metadata */
+    metadata?: Record<string, unknown>;
+}
+
+/**
+ * Search options
+ */
+export interface SearchOptions {
+    /** Providers to use (default: all enabled) */
+    providers?: SearchProvider[];
+    /** Maximum results per provider */
+    maxResults?: number;
+    /** Minimum relevance score */
+    minScore?: number;
+    /** Include full content */
+    includeContent?: boolean;
+}
+
+/**
+ * Search response
+ */
+export interface SearchResponse {
+    /** Search query */
+    query: string;
+    /** Combined results from all providers */
+    results: SearchResult[];
+    /** Results grouped by provider */
+    byProvider: Record<SearchProvider, SearchResult[]>;
+    /** Providers that were searched */
+    providersUsed: SearchProvider[];
+    /** Any errors encountered */
+    errors: Array<{ provider: SearchProvider; message: string }>;
+}
+
+/**
+ * Vault search result
+ */
+export interface VaultSearchResult extends SearchResult {
+    provider: 'vault';
+    /** File path */
+    path: string;
+    /** Line number if applicable */
+    line?: number;
+    /** Match type */
+    matchType: 'title' | 'content' | 'tag' | 'frontmatter';
+}
+
+/**
+ * Smart Connections search result
+ */
+export interface SmartConnectionsResult extends SearchResult {
+    provider: 'smart-connections';
+    /** File path */
+    path: string;
+    /** Semantic similarity score */
+    similarity: number;
+}
+
+/**
+ * OpenAlex academic search result
+ */
+export interface OpenAlexResult extends SearchResult {
+    provider: 'openalex';
+    /** Paper authors */
+    authors: string[];
+    /** Publication year */
+    year: number;
+    /** DOI */
+    doi?: string;
+    /** Citation count */
+    citationCount: number;
+    /** Journal/venue */
+    venue?: string;
+    /** Open access URL */
+    openAccessUrl?: string;
+}
+
+/**
+ * Web search result
+ */
+export interface WebSearchResult extends SearchResult {
+    provider: 'web';
+    /** Source LLM provider */
+    llmProvider: 'anthropic' | 'openai' | 'gemini';
+    /** Page URL */
+    url: string;
+}
+
+// =============================================================================
 // MCP SETTINGS FOR PLUGIN
 // =============================================================================
 

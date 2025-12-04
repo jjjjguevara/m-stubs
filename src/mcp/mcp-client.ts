@@ -68,6 +68,7 @@ export class MCPClient {
     private buffer = '';
     private reconnectAttempts = 0;
     private tools: MCPTool[] = [];
+    private serverInfo: { name: string; version: string } | null = null;
 
     constructor(config: Partial<MCPClientConfig> = {}) {
         this.config = { ...DEFAULT_MCP_CONFIG(), ...config };
@@ -132,6 +133,13 @@ export class MCPClient {
      */
     isConnected(): boolean {
         return this.state === 'connected';
+    }
+
+    /**
+     * Get the server version (available after connection)
+     */
+    getServerVersion(): string | null {
+        return this.serverInfo?.version ?? null;
     }
 
     /**
@@ -317,6 +325,7 @@ export class MCPClient {
         });
 
         console.debug('[MCP] Initialized:', initResult.serverInfo);
+        this.serverInfo = initResult.serverInfo;
 
         // Send initialized notification
         this.notify('notifications/initialized', {});

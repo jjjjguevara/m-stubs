@@ -15,8 +15,43 @@ import type {
 import type { ParsedStub } from '../stubs/stubs-types';
 
 // =============================================================================
+// VIEW STATE STORES
+// =============================================================================
+
+/**
+ * Active tab in the Explore view
+ */
+export type ExploreTab = 'related' | 'duplicates';
+export const activeExploreTab = writable<ExploreTab>('related');
+
+/**
+ * Whether to use semantic search (embeddings) vs keyword matching
+ */
+export const useSemanticSearch = writable<boolean>(true);
+
+/**
+ * Whether the search field is expanded (visible)
+ */
+export const isSearchExpanded = writable<boolean>(false);
+
+// =============================================================================
 // CORE STORES
 // =============================================================================
+
+/**
+ * Selected result paths for multi-selection
+ */
+export const selectedResults = writable<Set<string>>(new Set());
+
+/**
+ * Temporarily dismissed result paths (hidden until refresh)
+ */
+export const dismissedResults = writable<Set<string>>(new Set());
+
+/**
+ * Whether multi-select mode is enabled
+ */
+export const isMultiSelectMode = writable<boolean>(false);
 
 /**
  * Current active note path being explored
@@ -125,6 +160,24 @@ export const hasDuplicates = derived(duplicates, ($dups) => $dups.length > 0);
  * Whether there are link suggestions
  */
 export const hasLinkSuggestions = derived(linkSuggestions, ($suggestions) => $suggestions.length > 0);
+
+/**
+ * Visible results (excluding dismissed)
+ */
+export const visibleResults = derived(
+    [results, dismissedResults],
+    ([$results, $dismissed]) => $results.filter(r => !$dismissed.has(r.path))
+);
+
+/**
+ * Selected results count
+ */
+export const selectedCount = derived(selectedResults, ($selected) => $selected.size);
+
+/**
+ * Whether any results are selected
+ */
+export const hasSelection = derived(selectedResults, ($selected) => $selected.size > 0);
 
 /**
  * Combined state for quick access
@@ -314,6 +367,127 @@ export function clearResults(): void {
 }
 
 // =============================================================================
+// SELECTION & DISMISSAL ACTIONS
+// =============================================================================
+
+/**
+ * Toggle selection of a result
+ */
+export function toggleResultSelection(path: string): void {
+    selectedResults.update(current => {
+        const newSet = new Set(current);
+        if (newSet.has(path)) {
+            newSet.delete(path);
+        } else {
+            newSet.add(path);
+        }
+        return newSet;
+    });
+}
+
+/**
+ * Select a result
+ */
+export function selectResult(path: string): void {
+    selectedResults.update(current => {
+        const newSet = new Set(current);
+        newSet.add(path);
+        return newSet;
+    });
+}
+
+/**
+ * Deselect a result
+ */
+export function deselectResult(path: string): void {
+    selectedResults.update(current => {
+        const newSet = new Set(current);
+        newSet.delete(path);
+        return newSet;
+    });
+}
+
+/**
+ * Clear all selections
+ */
+export function clearSelection(): void {
+    selectedResults.set(new Set());
+}
+
+/**
+ * Select all visible results
+ */
+export function selectAllVisible(): void {
+    const visible = get(visibleResults);
+    selectedResults.set(new Set(visible.map(r => r.path)));
+}
+
+/**
+ * Dismiss a result temporarily
+ */
+export function dismissResult(path: string): void {
+    dismissedResults.update(current => {
+        const newSet = new Set(current);
+        newSet.add(path);
+        return newSet;
+    });
+    // Also remove from selection
+    deselectResult(path);
+}
+
+/**
+ * Restore a dismissed result
+ */
+export function restoreDismissedResult(path: string): void {
+    dismissedResults.update(current => {
+        const newSet = new Set(current);
+        newSet.delete(path);
+        return newSet;
+    });
+}
+
+/**
+ * Clear all dismissed results
+ */
+export function clearDismissed(): void {
+    dismissedResults.set(new Set());
+}
+
+/**
+ * Toggle multi-select mode
+ */
+export function toggleMultiSelectMode(): void {
+    isMultiSelectMode.update(current => !current);
+    if (!get(isMultiSelectMode)) {
+        clearSelection();
+    }
+}
+
+/**
+ * Enable multi-select mode
+ */
+export function enableMultiSelect(): void {
+    isMultiSelectMode.set(true);
+}
+
+/**
+ * Disable multi-select mode
+ */
+export function disableMultiSelect(): void {
+    isMultiSelectMode.set(false);
+    clearSelection();
+}
+
+/**
+ * Get selected result objects
+ */
+export function getSelectedResults(): RelatedNote[] {
+    const selected = get(selectedResults);
+    const allResults = get(results);
+    return allResults.filter(r => selected.has(r.path));
+}
+
+// =============================================================================
 // HELPERS
 // =============================================================================
 
@@ -336,4 +510,65 @@ export function getSearchQuery(): string {
  */
 export function isCurrentlyLoading(): boolean {
     return get(isLoading);
+}
+
+// =============================================================================
+// TAB & SEARCH MODE ACTIONS
+// =============================================================================
+
+/**
+ * Set the active explore tab
+ */
+export function setActiveTab(tab: ExploreTab): void {
+    activeExploreTab.set(tab);
+}
+
+/**
+ * Toggle semantic search mode
+ */
+export function toggleSemanticSearch(): void {
+    useSemanticSearch.update(current => !current);
+}
+
+/**
+ * Enable semantic search
+ */
+export function enableSemanticSearch(): void {
+    useSemanticSearch.set(true);
+}
+
+/**
+ * Disable semantic search (use keyword matching)
+ */
+export function disableSemanticSearch(): void {
+    useSemanticSearch.set(false);
+}
+
+/**
+ * Get current semantic search mode
+ */
+export function isSemanticSearchEnabled(): boolean {
+    return get(useSemanticSearch);
+}
+
+/**
+ * Toggle search field expansion
+ */
+export function toggleSearchExpanded(): void {
+    isSearchExpanded.update(current => !current);
+}
+
+/**
+ * Expand the search field
+ */
+export function expandSearch(): void {
+    isSearchExpanded.set(true);
+}
+
+/**
+ * Collapse the search field
+ */
+export function collapseSearch(): void {
+    isSearchExpanded.set(false);
+    searchQuery.set('');
 }

@@ -8,6 +8,7 @@
     import { generateAnchorId, insertAnchorAtLine, getValidAnchors } from '../../../../stubs/helpers/anchor-utils';
     import type LabeledAnnotations from '../../../../main';
     import type { SuggestedStub, FoundReference, LLMConfiguration } from '../../../../llm/llm-types';
+    import { getActionLogService, createAcceptSuggestionEntry, createRejectSuggestionEntry } from '../../../../services/action-log-service';
 
     export let plugin: LabeledAnnotations;
 
@@ -187,6 +188,16 @@
             console.log('[Doc Doctor] Suggestion removed, showing notice...');
             new Notice(`Stub added: ${suggestion.description.slice(0, 50)}...`);
 
+            // Log the accepted suggestion
+            const logService = getActionLogService(plugin.app);
+            await logService.log(createAcceptSuggestionEntry(
+                activeFile.path,
+                suggestion.type,
+                suggestion.description,
+                undefined, // before state
+                stubEntry  // after state
+            ));
+
             // Sync stubs after a short delay
             console.log('[Doc Doctor] Scheduling sync...');
             setTimeout(() => {
@@ -341,8 +352,21 @@
         return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ');
     }
 
-    function rejectSuggestion(index: number) {
+    async function rejectSuggestion(index: number) {
+        const suggestion = suggestions[index];
+        const activeFile = plugin.app.workspace.getActiveFile();
+
         removeSuggestion(index);
+
+        // Log the rejected suggestion
+        if (activeFile && suggestion) {
+            const logService = getActionLogService(plugin.app);
+            await logService.log(createRejectSuggestionEntry(
+                activeFile.path,
+                suggestion.type,
+                suggestion.description
+            ));
+        }
     }
 
     function rejectReference(index: number) {
@@ -538,9 +562,16 @@
                                             style="background-color: {typeInfo.color}"
                                             title={typeInfo.displayName}
                                         ></span>
-                                        <span class="item-description">
-                                            {suggestion.description}
-                                        </span>
+                                        <div class="item-content">
+                                            <span class="item-description">
+                                                {suggestion.description}
+                                            </span>
+                                            {#if suggestion.reasoning}
+                                                <div class="item-reasoning">
+                                                    {suggestion.reasoning}
+                                                </div>
+                                            {/if}
+                                        </div>
                                         <div class="item-actions">
                                             <button
                                                 class="action-btn accept"
@@ -1076,11 +1107,28 @@
         margin-top: 2px;
     }
 
-    .item-description {
+    .item-content {
         flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .item-description {
         font-size: var(--font-ui-smaller);
         color: var(--text-normal);
         word-break: break-word;
+    }
+
+    .item-reasoning {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-style: italic;
+        line-height: 1.4;
+        padding-left: 8px;
+        border-left: 2px solid var(--color-purple);
+        opacity: 0.85;
     }
 
     .item-actions {

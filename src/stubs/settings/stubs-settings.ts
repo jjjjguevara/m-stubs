@@ -379,6 +379,63 @@ function renderPropertiesSection({
 }
 
 /**
+ * Render type-specific content (default value inputs) for a property
+ */
+function renderTypeSpecificContent({
+    plugin,
+    containerEl,
+    propDef,
+}: {
+    plugin: LabeledAnnotations;
+    containerEl: HTMLElement;
+    propDef: StructuredPropertyDefinition;
+}): void {
+    if (propDef.type === 'enum') {
+        renderEnumHorizontalSelector({ plugin, containerEl, propDef });
+    } else if (propDef.type === 'string') {
+        const defaultInput = containerEl.createEl('input', {
+            cls: 'dd-field-input dd-default-compact',
+            attr: { type: 'text', value: String(propDef.defaultValue ?? ''), placeholder: 'Default value' },
+        });
+        defaultInput.addEventListener('change', (e) => {
+            plugin.settings.dispatch({
+                type: 'STUBS_UPDATE_PROPERTY',
+                payload: { id: propDef.id, updates: { defaultValue: (e.target as HTMLInputElement).value || undefined } },
+            });
+        });
+    } else if (propDef.type === 'number') {
+        const defaultInput = containerEl.createEl('input', {
+            cls: 'dd-field-input dd-default-compact',
+            attr: { type: 'number', value: propDef.defaultValue !== undefined ? String(propDef.defaultValue) : '', placeholder: 'Default' },
+        });
+        defaultInput.addEventListener('change', (e) => {
+            const value = (e.target as HTMLInputElement).value;
+            plugin.settings.dispatch({
+                type: 'STUBS_UPDATE_PROPERTY',
+                payload: { id: propDef.id, updates: { defaultValue: value ? parseFloat(value) : undefined } },
+            });
+        });
+    } else if (propDef.type === 'boolean') {
+        const boolWrapper = containerEl.createDiv('dd-bool-compact');
+        boolWrapper.createSpan({ text: 'Default: ', cls: 'dd-label' });
+        const toggle = boolWrapper.createEl('input', {
+            cls: 'dd-default-toggle',
+            attr: { type: 'checkbox', ...(propDef.defaultValue === true ? { checked: '' } : {}) },
+        });
+        const label = boolWrapper.createSpan({ text: propDef.defaultValue === true ? 'true' : 'false', cls: 'dd-bool-label' });
+        toggle.addEventListener('change', (e) => {
+            const checked = (e.target as HTMLInputElement).checked;
+            label.textContent = checked ? 'true' : 'false';
+            plugin.settings.dispatch({
+                type: 'STUBS_UPDATE_PROPERTY',
+                payload: { id: propDef.id, updates: { defaultValue: checked } },
+            });
+        });
+    }
+    // array type has no default value input currently
+}
+
+/**
  * Render a single property as a card (compact layout)
  */
 function renderPropertyCard({
@@ -461,12 +518,10 @@ function renderPropertyCard({
             });
             typeSelector.querySelectorAll('.dd-type-btn').forEach((b) => b.classList.remove('is-active'));
             btn.classList.add('is-active');
-            // Re-render to show type-specific options
-            const parent = card.parentElement;
-            card.remove();
-            if (parent) {
-                renderPropertyCard({ plugin, containerEl: parent, propDef: { ...propDef, type: t.key }, config });
-            }
+            // Re-render type-specific content in place (don't remove the whole card)
+            typeContent.empty();
+            const updatedPropDef = { ...propDef, type: t.key };
+            renderTypeSpecificContent({ plugin, containerEl: typeContent, propDef: updatedPropDef });
         });
     }
 
@@ -502,49 +557,8 @@ function renderPropertyCard({
     // Setup drag and drop
     setupDragAndDrop(card, plugin, 'property');
 
-    // Type-specific options
-    if (propDef.type === 'enum') {
-        renderEnumHorizontalSelector({ plugin, containerEl: typeContent, propDef });
-    } else if (propDef.type === 'string') {
-        const defaultInput = typeContent.createEl('input', {
-            cls: 'dd-field-input dd-default-compact',
-            attr: { type: 'text', value: String(propDef.defaultValue ?? ''), placeholder: 'Default value' },
-        });
-        defaultInput.addEventListener('change', (e) => {
-            plugin.settings.dispatch({
-                type: 'STUBS_UPDATE_PROPERTY',
-                payload: { id: propDef.id, updates: { defaultValue: (e.target as HTMLInputElement).value || undefined } },
-            });
-        });
-    } else if (propDef.type === 'number') {
-        const defaultInput = typeContent.createEl('input', {
-            cls: 'dd-field-input dd-default-compact',
-            attr: { type: 'number', value: propDef.defaultValue !== undefined ? String(propDef.defaultValue) : '', placeholder: 'Default' },
-        });
-        defaultInput.addEventListener('change', (e) => {
-            const value = (e.target as HTMLInputElement).value;
-            plugin.settings.dispatch({
-                type: 'STUBS_UPDATE_PROPERTY',
-                payload: { id: propDef.id, updates: { defaultValue: value ? parseFloat(value) : undefined } },
-            });
-        });
-    } else if (propDef.type === 'boolean') {
-        const boolWrapper = typeContent.createDiv('dd-bool-compact');
-        boolWrapper.createSpan({ text: 'Default: ', cls: 'dd-label' });
-        const toggle = boolWrapper.createEl('input', {
-            cls: 'dd-default-toggle',
-            attr: { type: 'checkbox', ...(propDef.defaultValue === true ? { checked: '' } : {}) },
-        });
-        const label = boolWrapper.createSpan({ text: propDef.defaultValue === true ? 'true' : 'false', cls: 'dd-bool-label' });
-        toggle.addEventListener('change', (e) => {
-            const checked = (e.target as HTMLInputElement).checked;
-            label.textContent = checked ? 'true' : 'false';
-            plugin.settings.dispatch({
-                type: 'STUBS_UPDATE_PROPERTY',
-                payload: { id: propDef.id, updates: { defaultValue: checked } },
-            });
-        });
-    }
+    // Render type-specific options
+    renderTypeSpecificContent({ plugin, containerEl: typeContent, propDef });
 
     // Delete button (two-step)
     const deleteBtn = row2.createEl('button', { cls: 'dd-delete-btn', attr: { title: 'Delete property' } });

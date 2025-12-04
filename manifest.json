@@ -1,7 +1,7 @@
 {
     "id": "doc-doctor",
     "name": "Doc Doctor",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "minAppVersion": "0.15.0",
     "description": "AI-powered document analysis and stub tracking for Obsidian with J-Editorial Framework integration. Fork of Enhanced Annotations by ycnmhd.",
     "author": "Josué Guevara",

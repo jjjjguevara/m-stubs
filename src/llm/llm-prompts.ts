@@ -2,10 +2,14 @@
  * LLM Module - Prompts and Context Builder
  *
  * Default system prompt and context builder for LLM-powered stub suggestions.
+ * Now supports schema-driven prompt generation using J-Editorial schema.
  */
 
 import type { StubTypeDefinition, StubsConfiguration, ParsedStub } from '../stubs/stubs-types';
 import type { DocumentContext, LLMSuggestionResponse, SuggestedStub, FoundReference } from './llm-types';
+import type { JEditorialSchema, DocumentState, CreativityModeId } from '../schema/schema-types';
+import { LLMContextBuilder, LLMContext } from './context-builder';
+import { SchemaLoader } from '../schema/schema-loader';
 
 // =============================================================================
 // DEFAULT SYSTEM PROMPT
@@ -520,4 +524,249 @@ function isValidForm(value: unknown): value is DocumentContext['frontmatter']['f
 
 function isValidAudience(value: unknown): value is DocumentContext['frontmatter']['audience'] {
     return ['personal', 'internal', 'trusted', 'public'].includes(String(value));
+}
+
+// =============================================================================
+// SCHEMA-DRIVEN PROMPT BUILDER
+// =============================================================================
+
+/**
+ * Schema-driven prompt builder that uses the J-Editorial schema
+ * to generate contextual prompts for LLM analysis.
+ */
+export class SchemaPromptBuilder {
+    private contextBuilder: LLMContextBuilder;
+    private schemaLoader: SchemaLoader;
+
+    constructor(schemaLoader: SchemaLoader) {
+        this.schemaLoader = schemaLoader;
+        this.contextBuilder = new LLMContextBuilder(schemaLoader);
+    }
+
+    /**
+     * Build complete prompts using schema-driven context
+     */
+    buildPrompts(
+        document: DocumentState,
+        userRequest: string,
+        options?: {
+            creativityMode?: CreativityModeId;
+            externalContext?: string;
+        }
+    ): { systemPrompt: string; userPrompt: string; context: LLMContext } {
+        // Build context using schema
+        const context = this.contextBuilder.buildContext(document, {
+            creativityMode: options?.creativityMode,
+            externalContext: options?.externalContext,
+        });
+
+        // Build system prompt from schema context
+        const systemPrompt = this.contextBuilder.buildSystemPrompt(context);
+
+        // Build user prompt with document state and request
+        const userPrompt = this.buildSchemaUserPrompt(context, userRequest);
+
+        return { systemPrompt, userPrompt, context };
+    }
+
+    /**
+     * Build user prompt with schema-aware formatting
+     */
+    private buildSchemaUserPrompt(context: LLMContext, userRequest: string): string {
+        const sections: string[] = [];
+
+        // Document state
+        sections.push(this.buildDocumentStateSection(context.document));
+
+        // Existing stubs
+        if (context.document.existingStubs.length > 0) {
+            sections.push(this.buildExistingStubsSection(context.document.existingStubs));
+        }
+
+        // Aggregate metrics
+        sections.push(this.buildMetricsSection(context.document.aggregateMetrics));
+
+        // External context if present
+        if (context.request.externalContext) {
+            sections.push(`## External Research Context\n\n${context.request.externalContext}`);
+        }
+
+        // User request
+        sections.push(this.buildRequestSection(userRequest));
+
+        // Response format instructions
+        sections.push(this.buildResponseFormatSection());
+
+        return sections.join('\n\n---\n\n');
+    }
+
+    private buildDocumentStateSection(doc: LLMContext['document']): string {
+        return `## Document Being Analyzed
+
+**Path**: ${doc.path}
+**Title**: ${doc.title}
+${doc.description ? `**Description**: ${doc.description}` : ''}
+
+### L1 Properties
+- **Refinement**: ${doc.refinement.toFixed(2)}
+- **Origin**: ${doc.origin || 'not specified'}
+- **Form**: ${doc.form || 'not specified'}
+- **Audience**: ${doc.audience || 'personal'}
+
+### Quality Gate Status
+${doc.qualityGateStatus.meetsThreshold ? `✅ Meets threshold (${doc.qualityGateStatus.requiredThreshold})` : `❌ Below threshold: needs ${doc.qualityGateStatus.requiredThreshold}, has ${doc.qualityGateStatus.currentRefinement.toFixed(2)} (gap: ${doc.qualityGateStatus.gap.toFixed(2)})`}`;
+    }
+
+    private buildExistingStubsSection(stubs: LLMContext['document']['existingStubs']): string {
+        return `### Existing Stubs (${stubs.length})
+
+${stubs
+    .map(
+        (s, i) =>
+            `${i + 1}. **${s.type}**: ${s.description}${s.anchorId ? ` (^${s.anchorId})` : ''}${s.form ? ` [${s.form}]` : ''}`
+    )
+    .join('\n')}
+
+Consider these existing stubs when making suggestions. Avoid duplicating them.`;
+    }
+
+    private buildMetricsSection(metrics: LLMContext['document']['aggregateMetrics']): string {
+        return `### Aggregate Metrics
+
+- **Total Stubs**: ${metrics.totalStubs}
+- **Blocking Stubs**: ${metrics.blockingCount}
+- **Total Potential Energy**: ${metrics.totalPotentialEnergy.toFixed(2)} Eₚ
+- **Estimated Refinement Penalty**: -${metrics.estimatedPenalty.toFixed(2)}
+
+**Vector Family Distribution**:
+${Object.entries(metrics.vectorFamilyDistribution)
+    .filter(([_, count]) => count > 0)
+    .map(([family, count]) => `- ${family}: ${count}`)
+    .join('\n') || '- No stubs by family'}`;
+    }
+
+    private buildRequestSection(userRequest: string): string {
+        return `## Analysis Request
+
+${userRequest}`;
+    }
+
+    private buildResponseFormatSection(): string {
+        return `## Response Format
+
+Respond with ONLY valid JSON (no markdown, no code fences, no explanation text).
+
+CRITICAL RULES:
+1. Use ONLY stub type keys from the schema above
+2. Every reference MUST come from tool call results
+3. DO NOT cite document content as a source
+4. DO NOT invent URLs, DOIs, or vault links
+
+REQUIRED JSON SCHEMA:
+{
+  "thinking": "string - Your analysis process: sections examined, patterns found, reasoning",
+  "analysis_summary": "string - 1-2 sentence overview of document quality",
+  "suggested_stubs": [
+    {
+      "type": "string - MUST be one of the stub type keys from schema",
+      "description": "string - Clear, actionable description",
+      "stub_form": "string - One of: transient, persistent, blocking",
+      "priority": "string - One of: low, medium, high, critical",
+      "location": {
+        "section": "string - Heading where gap appears",
+        "context": "string - Quote or description of location",
+        "lineNumber": "number (REQUIRED) - 1-indexed line number for anchor placement"
+      },
+      "rationale": "string - Why this stub type fits this gap",
+      "vector_family": "string - The vector family this stub belongs to"
+    }
+  ],
+  "references": [
+    {
+      "type": "string - One of: vault, web, citation, unknown",
+      "title": "string - Display name for the reference",
+      "target": "string - The actual link: [[Note Name]] for vault, https://... for web",
+      "context": "string - Why this reference is relevant",
+      "section": "string - Section where reference would fit",
+      "verified": "boolean - true if found through tool call, false otherwise"
+    }
+  ],
+  "tool_calls_made": [
+    {
+      "tool": "string - Tool name used",
+      "query": "string - Search query or URL",
+      "results_count": "number - How many results returned"
+    }
+  ],
+  "confidence": "number - 0.0 to 1.0, your confidence in the analysis"
+}
+
+LINE NUMBER INSTRUCTIONS:
+- lineNumber is REQUIRED for every suggested stub
+- Count from line 1 at the very start of the document (including the opening ---)
+- The anchor will be appended to the END of the specified line
+- Choose the line that best represents where the gap exists`;
+    }
+
+    /**
+     * Get suggested creativity mode for a document
+     */
+    getSuggestedMode(document: DocumentState): CreativityModeId {
+        return this.contextBuilder.suggestCreativityMode(document);
+    }
+
+    /**
+     * Get the current schema
+     */
+    getSchema(): JEditorialSchema {
+        return this.schemaLoader.getSchema();
+    }
+}
+
+// =============================================================================
+// COMBINED PROMPT BUILDER (Backward Compatible)
+// =============================================================================
+
+/**
+ * Build prompts using both legacy and schema-driven approaches.
+ * Uses schema when available, falls back to legacy.
+ */
+export function buildCombinedPrompts(
+    legacyContext: DocumentContext,
+    stubTypes: StubTypeDefinition[],
+    schemaLoader?: SchemaLoader,
+    document?: DocumentState,
+    creativityMode?: CreativityModeId
+): { systemPrompt: string; userPrompt: string } {
+    // If schema loader and document state are provided, use schema-driven approach
+    if (schemaLoader && document) {
+        const builder = new SchemaPromptBuilder(schemaLoader);
+        const { systemPrompt, userPrompt } = builder.buildPrompts(
+            document,
+            'Analyze this document for editorial gaps and suggest improvements.',
+            { creativityMode }
+        );
+
+        // Append document content to user prompt
+        const contentSection = `
+
+---
+
+## Document Content
+
+\`\`\`markdown
+${legacyContext.content}
+\`\`\``;
+
+        return {
+            systemPrompt,
+            userPrompt: userPrompt + contentSection,
+        };
+    }
+
+    // Fall back to legacy approach
+    return {
+        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        userPrompt: buildUserPrompt(legacyContext, stubTypes),
+    };
 }

@@ -15,7 +15,7 @@ export const l = {
     OUTLINE_READ_ANNOTATIONS: 'Read annotations',
     OUTLINE_PLUGIN_IS_IDLE: ' plugin is idle',
     OUTLINE_ENABLE_PLUGIN: 'Enable',
-    PLUGIN_NAME: 'Enhanced Annotations',
+    PLUGIN_NAME: 'Doc Doctor',
     SETTINGS_AUTO_SUGGEST_TITLE: 'Autocomplete',
     SETTINGS_AUTO_SUGGEST_ENABLE: 'Enable autocomplete popup',
     SETTINGS_AUTO_SUGGEST_ENABLE_DESC:

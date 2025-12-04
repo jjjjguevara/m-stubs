@@ -1,11 +1,12 @@
 <script lang="ts">
-    import { createEventDispatcher, onDestroy } from 'svelte';
+    import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
     import { Search, X, Loader2 } from 'lucide-svelte';
 
     export let query: string = '';
     export let isLoading: boolean = false;
     export let placeholder: string = 'Search vault semantically...';
     export let debounceMs: number = 300;
+    export let autoFocus: boolean = false;
 
     const dispatch = createEventDispatcher<{
         search: string;
@@ -15,11 +16,21 @@
     let inputValue = query;
     let inputEl: HTMLInputElement;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastExternalQuery = query;
 
-    // Sync external query changes
-    $: if (query !== inputValue) {
+    // Sync external query changes (only when prop changes from outside)
+    $: if (query !== lastExternalQuery) {
+        lastExternalQuery = query;
         inputValue = query;
     }
+
+    onMount(async () => {
+        if (autoFocus) {
+            // Wait for DOM to be ready
+            await tick();
+            inputEl?.focus();
+        }
+    });
 
     onDestroy(() => {
         if (debounceTimer) {

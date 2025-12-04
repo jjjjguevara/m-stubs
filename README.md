@@ -26,9 +26,15 @@ Doc Doctor supports configurable stub types out of the box:
 
 ## Features
 
-### AI Integration (New in v0.4.0)
+### AI Integration (New in v0.4.0+)
 
-Doc Doctor integrates with LLMs to provide intelligent document analysis and stub resolution assistance.
+Doc Doctor integrates with LLMs to provide intelligent document analysis and stub resolution assistance, powered by a schema-first architecture.
+
+#### J-Editorial Schema System (v0.4.2)
+- **Schema-Driven Prompts**: LLM requests include full J-Editorial ontology (property definitions, vector families, stub semantics)
+- **User-Overridable Schema**: Extend or replace the default schema via `.doc-doctor/schema.yaml`
+- **Creativity Modes**: Auto-suggested modes based on document properties (Research, Review, Draft, Creative)
+- **Reference Verification**: Mandatory tool use for citations with verification pipeline
 
 #### LLM-Powered Features
 - **Stub Suggestions**: Get AI-generated recommendations for resolving stubs
@@ -46,7 +52,7 @@ Doc Doctor integrates with LLMs to provide intelligent document analysis and stu
 - Search and scrape web content to inform stub resolution
 - Enrich documents with cited sources
 
-### Explore View (New in v0.4.0)
+### Explore View (New in v0.4.0+)
 
 Semantic search and related notes discovery powered by [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections).
 
@@ -60,6 +66,12 @@ Semantic search and related notes discovery powered by [Smart Connections](https
 - Customize the frontmatter property name for related notes (default: `related`)
 - Auto-populate suggestions from semantic search results
 - Navigate directly to related documents
+
+#### Result Card Customization (v0.4.2)
+- **Segmented Cards**: Divide result cards into 1-6 clickable regions
+- **Command Mapping**: Map each region to any Obsidian command
+- **Draggable Handles**: Resize regions with visual drag handles
+- **Preset Layouts**: Choose from Equal 4, Equal 5, Asymmetric, or Custom
 
 ### Stubs System (v0.2.0+)
 
@@ -277,6 +289,19 @@ magnitude = √(PE² + friction²)
 
 ## Changelog
 
+### v0.4.2 (2024-12-04)
+- **New**: J-Editorial Schema System - schema-first LLM architecture with full ontology transmission
+- **New**: Creativity Modes (Research, Review, Draft, Creative) auto-suggested from document properties
+- **New**: Reference Verification pipeline with mandatory tool use for citations
+- **New**: User-overridable schema via `.doc-doctor/schema.yaml`
+- **New**: Result Card Customization with segmented regions (1-6) and command mapping
+- **New**: Draggable region resize handles for custom card layouts
+- **New**: Searchable command dropdown with verbatim word-start matching
+- **New**: Command Manifest (`src/commands/command-manifest.ts`) for developer tooling
+- **Improved**: Explore search field input handling (fixed reactive statement bug)
+- **Improved**: Settings scroll preservation during UI updates
+- **Fixed**: Stubs Data Type change no longer rearranges the property list
+
 ### v0.4.1 (2024-12-03)
 - **New**: General settings tab with master feature toggles (Annotations, Stubs, AI, Explore)
 - **New**: Unified diagnostics panel for all integrations (LLM, MCP, Smart Connections)
@@ -349,6 +374,6 @@ For major changes, please open an issue first to discuss the proposed changes.
 
 ---
 
-**Version**: 0.4.1
+**Version**: 0.4.2
 **Obsidian**: 0.15.0+
 **License**: MIT

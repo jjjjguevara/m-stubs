@@ -4,7 +4,7 @@
  * Handles state updates for LLM configuration settings.
  */
 
-import type { LLMConfiguration, LLMProvider } from './llm-types';
+import type { LLMConfiguration, LLMProvider, CachedModels } from './llm-types';
 
 // =============================================================================
 // ACTION TYPES
@@ -43,7 +43,10 @@ export type LLMSettingsActions =
     | { type: 'LLM_SET_STUB_CONFIG_SCHEMA_MODE'; payload: { mode: 'replace' | 'merge' } }
     // Prompt template actions
     | { type: 'LLM_SET_SELECTED_TEMPLATE'; payload: { templateId: string } }
-    | { type: 'LLM_SET_CUSTOM_TEMPLATES_PATH'; payload: { path: string } };
+    | { type: 'LLM_SET_CUSTOM_TEMPLATES_PATH'; payload: { path: string } }
+    // Cached models actions
+    | { type: 'LLM_SET_CACHED_MODELS'; payload: { cachedModels: CachedModels } }
+    | { type: 'LLM_CLEAR_CACHED_MODELS'; payload: { provider?: LLMProvider } };
 
 // =============================================================================
 // REDUCER
@@ -63,13 +66,24 @@ export function llmSettingsReducer(
             // Reset model when changing provider
             if (action.payload.provider === 'anthropic') {
                 config.model = 'claude-sonnet-4-20250514';
-            } else {
+            } else if (action.payload.provider === 'openai') {
                 config.model = 'gpt-4o';
+            } else if (action.payload.provider === 'gemini') {
+                config.model = 'gemini-2.0-flash';
+            }
+            // Sync apiKey from the new provider's stored key
+            if (config.apiKeys) {
+                config.apiKey = config.apiKeys[action.payload.provider] || '';
             }
             break;
 
         case 'LLM_SET_API_KEY':
             config.apiKey = action.payload.apiKey;
+            // Also store in provider-specific apiKeys
+            if (!config.apiKeys) {
+                config.apiKeys = { anthropic: '', openai: '', gemini: '' };
+            }
+            config.apiKeys[config.provider] = action.payload.apiKey;
             break;
 
         case 'LLM_SET_MODEL':
@@ -181,6 +195,21 @@ export function llmSettingsReducer(
 
         case 'LLM_SET_CUSTOM_TEMPLATES_PATH':
             config.customTemplatesPath = action.payload.path;
+            break;
+
+        // Cached models cases
+        case 'LLM_SET_CACHED_MODELS':
+            config.cachedModels = action.payload.cachedModels;
+            break;
+
+        case 'LLM_CLEAR_CACHED_MODELS':
+            if (action.payload.provider && config.cachedModels) {
+                // Clear specific provider
+                delete config.cachedModels[action.payload.provider];
+            } else {
+                // Clear all cached models
+                config.cachedModels = undefined;
+            }
             break;
     }
 }

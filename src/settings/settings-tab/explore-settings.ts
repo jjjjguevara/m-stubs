@@ -4,8 +4,13 @@
  * Settings UI for the Explore view and Smart Connections integration.
  */
 
-import { Notice, Setting } from 'obsidian';
+import { Notice, setIcon, Setting } from 'obsidian';
 import type LabeledAnnotations from '../../main';
+import {
+    CARD_PRESETS,
+    type CardPreset,
+    type CardRegion,
+} from '../../shared/types/segmented-card-types';
 
 interface Props {
     plugin: LabeledAnnotations;
@@ -325,6 +330,544 @@ export const ExploreSettings = ({ plugin, containerEl }: Props) => {
                 }
             });
         });
+
+    // ==========================================================================
+    // CARD CUSTOMIZATION
+    // ==========================================================================
+
+    containerEl.createEl('h3', { text: 'Result Card Customization' });
+    containerEl.createEl('p', {
+        text: 'Customize how result cards behave. Enable segmentation to divide cards into clickable regions, each mapped to a command.',
+        cls: 'setting-item-description',
+    });
+
+    const cardSettings = settings.cardSegmentation;
+
+    // Enable segmented cards
+    new Setting(containerEl)
+        .setName('Enable Card Segmentation')
+        .setDesc('Divide result cards into clickable regions for quick actions')
+        .addToggle((toggle) => {
+            toggle.setValue(cardSettings.enabled).onChange((value) => {
+                plugin.settings.dispatch({
+                    type: 'SET_CARD_SEGMENTATION_ENABLED',
+                    payload: { enabled: value },
+                });
+                // Refresh the display
+                containerEl.empty();
+                ExploreSettings({ plugin, containerEl });
+            });
+        });
+
+    if (cardSettings.enabled) {
+        // Show labels on hover
+        new Setting(containerEl)
+            .setName('Show Labels on Hover')
+            .setDesc('Display action labels when hovering over card regions')
+            .addToggle((toggle) => {
+                toggle.setValue(cardSettings.showLabelsOnHover).onChange((value) => {
+                    plugin.settings.dispatch({
+                        type: 'SET_CARD_SEGMENTATION_SHOW_LABELS',
+                        payload: { showLabels: value },
+                    });
+                });
+            });
+
+        // Show separators
+        new Setting(containerEl)
+            .setName('Show Region Separators')
+            .setDesc('Display visual dividers between card regions')
+            .addToggle((toggle) => {
+                toggle.setValue(cardSettings.showSeparators).onChange((value) => {
+                    plugin.settings.dispatch({
+                        type: 'SET_CARD_SEGMENTATION_SHOW_SEPARATORS',
+                        payload: { showSeparators: value },
+                    });
+                });
+            });
+
+        // Create a container for the card customization section
+        const cardCustomizationContainer = containerEl.createDiv('card-customization-section');
+
+        // Get all available commands from Obsidian
+        const commandsRegistry = (plugin.app as any).commands?.commands as Record<string, { name: string }> ?? {};
+        const allCommands = Object.entries(commandsRegistry)
+            .map(([id, cmd]) => ({ id, name: cmd.name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        // Helper to get current regions based on preset
+        const getCurrentRegions = (): CardRegion[] => {
+            const s = plugin.settings.getValue().cardSegmentation;
+            return s.defaultPreset === 'custom' ? s.customRegions : CARD_PRESETS[s.defaultPreset];
+        };
+
+        // Helper to render with scroll position preservation
+        const renderWithScrollPreservation = (renderFn: () => void) => {
+            const modal = containerEl.closest('.modal') || containerEl.closest('.vertical-tab-content');
+            const scrollTop = modal?.scrollTop ?? 0;
+            renderFn();
+            if (modal) {
+                requestAnimationFrame(() => { modal.scrollTop = scrollTop; });
+            }
+        };
+
+        // Main render function
+        const renderCardCustomization = () => {
+            cardCustomizationContainer.empty();
+            const currentCardSettings = plugin.settings.getValue().cardSegmentation;
+            const currentRegions = getCurrentRegions();
+
+            // Preset selector
+            new Setting(cardCustomizationContainer)
+                .setName('Card Layout Preset')
+                .setDesc('Choose a predefined layout or customize regions')
+                .addDropdown((dropdown) => {
+                    dropdown
+                        .addOption('equal-4', 'Equal 4 Regions (25% each)')
+                        .addOption('equal-5', 'Equal 5 Regions (20% each)')
+                        .addOption('asymmetric-4', 'Asymmetric (15-35-35-15%)')
+                        .addOption('custom', 'Custom')
+                        .setValue(currentCardSettings.defaultPreset)
+                        .onChange((value: CardPreset) => {
+                            if (value === 'custom' && currentCardSettings.customRegions.length === 0) {
+                                plugin.settings.dispatch({
+                                    type: 'SET_CARD_CUSTOM_REGIONS',
+                                    payload: {
+                                        regions: [
+                                            { id: 'region-1', widthPercent: 25, commandId: '', label: 'Action 1' },
+                                            { id: 'region-2', widthPercent: 25, commandId: '', label: 'Action 2' },
+                                            { id: 'region-3', widthPercent: 25, commandId: '', label: 'Action 3' },
+                                            { id: 'region-4', widthPercent: 25, commandId: '', label: 'Action 4' },
+                                        ],
+                                    },
+                                });
+                            }
+                            plugin.settings.dispatch({
+                                type: 'SET_CARD_SEGMENTATION_PRESET',
+                                payload: { preset: value },
+                            });
+                            renderWithScrollPreservation(renderCardCustomization);
+                        });
+                });
+
+            // Layout Preview section
+            const previewSection = cardCustomizationContainer.createDiv('card-preview-section');
+            const previewHeader = previewSection.createDiv('card-preview-header');
+            previewHeader.createEl('span', { text: 'Layout Preview', cls: 'card-preview-title' });
+
+            // +/- buttons for Custom preset
+            if (currentCardSettings.defaultPreset === 'custom') {
+                const btnGroup = previewHeader.createDiv('card-preview-btn-group');
+
+                const minusBtn = btnGroup.createEl('button', {
+                    cls: `card-preview-btn ${currentRegions.length <= 1 ? 'disabled' : ''}`,
+                    attr: { title: 'Remove region (min 1)' },
+                });
+                setIcon(minusBtn, 'minus');
+                minusBtn.addEventListener('click', () => {
+                    const regions = getCurrentRegions();
+                    if (regions.length > 1) {
+                        const newRegions = regions.slice(0, -1);
+                        const equalWidth = 100 / newRegions.length;
+                        plugin.settings.dispatch({
+                            type: 'SET_CARD_CUSTOM_REGIONS',
+                            payload: { regions: newRegions.map((r) => ({ ...r, widthPercent: equalWidth })) },
+                        });
+                        renderWithScrollPreservation(renderCardCustomization);
+                    }
+                });
+
+                const plusBtn = btnGroup.createEl('button', {
+                    cls: `card-preview-btn ${currentRegions.length >= 6 ? 'disabled' : ''}`,
+                    attr: { title: 'Add region (max 6)' },
+                });
+                setIcon(plusBtn, 'plus');
+                plusBtn.addEventListener('click', () => {
+                    const regions = getCurrentRegions();
+                    if (regions.length < 6) {
+                        const newRegions = [
+                            ...regions,
+                            { id: `region-${regions.length + 1}`, widthPercent: 0, commandId: '', label: `Action ${regions.length + 1}` },
+                        ];
+                        const equalWidth = 100 / newRegions.length;
+                        plugin.settings.dispatch({
+                            type: 'SET_CARD_CUSTOM_REGIONS',
+                            payload: { regions: newRegions.map((r) => ({ ...r, widthPercent: equalWidth })) },
+                        });
+                        renderWithScrollPreservation(renderCardCustomization);
+                    }
+                });
+            }
+
+            // Card preview
+            const previewContainer = previewSection.createDiv('card-preview-container');
+            const previewCard = previewContainer.createDiv('card-preview');
+
+            currentRegions.forEach((region, index) => {
+                const regionEl = previewCard.createDiv('card-preview-region');
+                regionEl.style.width = `${region.widthPercent}%`;
+                regionEl.textContent = `${Math.round(region.widthPercent)}%`;
+                regionEl.title = region.label;
+
+                // Add draggable handle for Custom preset
+                if (index > 0 && currentCardSettings.defaultPreset === 'custom') {
+                    const handle = previewCard.createDiv('card-preview-handle');
+                    handle.style.left = `${currentRegions.slice(0, index).reduce((sum, r) => sum + r.widthPercent, 0)}%`;
+
+                    let isDragging = false;
+                    let startX = 0;
+                    let startLeftWidth = 0;
+                    let startRightWidth = 0;
+
+                    const onMouseDown = (e: MouseEvent) => {
+                        const regions = getCurrentRegions();
+                        isDragging = true;
+                        startX = e.clientX;
+                        startLeftWidth = regions[index - 1].widthPercent;
+                        startRightWidth = regions[index].widthPercent;
+                        handle.classList.add('dragging');
+                        document.body.style.cursor = 'col-resize';
+                        e.preventDefault();
+                    };
+
+                    const onMouseMove = (e: MouseEvent) => {
+                        if (!isDragging) return;
+                        const cardRect = previewCard.getBoundingClientRect();
+                        const deltaPercent = ((e.clientX - startX) / cardRect.width) * 100;
+
+                        let newLeftWidth = Math.max(10, Math.min(startLeftWidth + startRightWidth - 10, startLeftWidth + deltaPercent));
+                        let newRightWidth = startLeftWidth + startRightWidth - newLeftWidth;
+
+                        // Update visually
+                        const regionEls = previewCard.querySelectorAll('.card-preview-region');
+                        (regionEls[index - 1] as HTMLElement).style.width = `${newLeftWidth}%`;
+                        (regionEls[index - 1] as HTMLElement).textContent = `${Math.round(newLeftWidth)}%`;
+                        (regionEls[index] as HTMLElement).style.width = `${newRightWidth}%`;
+                        (regionEls[index] as HTMLElement).textContent = `${Math.round(newRightWidth)}%`;
+
+                        const regions = getCurrentRegions();
+                        const newPos = regions.slice(0, index - 1).reduce((sum, r) => sum + r.widthPercent, 0) + newLeftWidth;
+                        handle.style.left = `${newPos}%`;
+                    };
+
+                    const onMouseUp = () => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        handle.classList.remove('dragging');
+                        document.body.style.cursor = '';
+
+                        const regionEls = previewCard.querySelectorAll('.card-preview-region');
+                        const regions = getCurrentRegions();
+                        const updatedRegions = regions.map((r, i) => ({
+                            ...r,
+                            widthPercent: parseFloat((regionEls[i] as HTMLElement).style.width) || r.widthPercent,
+                        }));
+                        plugin.settings.dispatch({
+                            type: 'SET_CARD_CUSTOM_REGIONS',
+                            payload: { regions: updatedRegions },
+                        });
+                        // Update commands section only (no full re-render)
+                        renderCommandsSection();
+                    };
+
+                    handle.addEventListener('mousedown', onMouseDown);
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }
+            });
+
+            // Region Commands section
+            const commandsContainer = cardCustomizationContainer.createDiv('region-commands-section');
+
+            const renderCommandsSection = () => {
+                commandsContainer.empty();
+                const regions = getCurrentRegions();
+                const cardSettings = plugin.settings.getValue().cardSegmentation;
+
+                commandsContainer.createEl('h4', { text: 'Region Commands' });
+
+                regions.forEach((region, index) => {
+                    const setting = new Setting(commandsContainer)
+                        .setName(`Region ${index + 1}`)
+                        .setDesc(`${Math.round(region.widthPercent)}% width`);
+
+                    // Use Obsidian's native dropdown approach
+                    const controlEl = setting.controlEl;
+                    const wrapper = controlEl.createDiv('command-dropdown-wrapper');
+
+                    const input = wrapper.createEl('input', {
+                        cls: 'command-dropdown-input',
+                        attr: {
+                            type: 'text',
+                            placeholder: 'Search commands...',
+                        },
+                    });
+
+                    // Show current selection
+                    if (region.commandId) {
+                        input.value = commandsRegistry[region.commandId]?.name || region.commandId;
+                    }
+
+                    const dropdownContainer = wrapper.createDiv('command-dropdown-list');
+
+                    const renderDropdown = (filter: string) => {
+                        dropdownContainer.empty();
+                        const filterLower = filter.toLowerCase().trim();
+
+                        // Filter commands - verbatim word-start matching
+                        const filtered = filterLower
+                            ? allCommands.filter((cmd) => {
+                                const words = cmd.name.toLowerCase().split(/[\s:>\-_]+/);
+                                return words.some(word => word.startsWith(filterLower)) ||
+                                       cmd.name.toLowerCase().startsWith(filterLower);
+                            })
+                            : allCommands;
+
+                        // Default option
+                        const defaultItem = dropdownContainer.createDiv({
+                            cls: `command-dropdown-item ${!region.commandId ? 'is-selected' : ''}`,
+                        });
+                        defaultItem.createSpan({ text: '(Default action)', cls: 'command-dropdown-item-name' });
+                        defaultItem.addEventListener('mousedown', (e) => {
+                            e.preventDefault();
+                            plugin.settings.dispatch({
+                                type: 'SET_CARD_REGION_COMMAND',
+                                payload: { regionIndex: index, commandId: '', preset: cardSettings.defaultPreset },
+                            });
+                            input.value = '';
+                            input.blur();
+                        });
+
+                        // Command options
+                        filtered.forEach((cmd) => {
+                            const item = dropdownContainer.createDiv({
+                                cls: `command-dropdown-item ${cmd.id === region.commandId ? 'is-selected' : ''}`,
+                            });
+                            item.createSpan({ text: cmd.name, cls: 'command-dropdown-item-name' });
+                            item.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                plugin.settings.dispatch({
+                                    type: 'SET_CARD_REGION_COMMAND',
+                                    payload: { regionIndex: index, commandId: cmd.id, preset: cardSettings.defaultPreset },
+                                });
+                                input.value = cmd.name;
+                                input.blur();
+                            });
+                        });
+                    };
+
+                    input.addEventListener('focus', () => {
+                        renderDropdown(input.value);
+                        dropdownContainer.style.display = 'block';
+                        input.select();
+                    });
+
+                    input.addEventListener('input', () => {
+                        renderDropdown(input.value);
+                    });
+
+                    input.addEventListener('blur', () => {
+                        setTimeout(() => {
+                            dropdownContainer.style.display = 'none';
+                            // Reset display to current value
+                            input.value = region.commandId
+                                ? (commandsRegistry[region.commandId]?.name || region.commandId)
+                                : '';
+                        }, 150);
+                    });
+
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            input.blur();
+                        } else if (e.key === 'Enter') {
+                            const firstItem = dropdownContainer.querySelector('.command-dropdown-item:not(.is-selected)') as HTMLElement;
+                            if (firstItem) {
+                                firstItem.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                            }
+                        }
+                    });
+                });
+            };
+
+            renderCommandsSection();
+        };
+
+        // Initial render
+        renderCardCustomization();
+    }
+
+    // Add CSS for card preview
+    const cardPreviewStyle = document.createElement('style');
+    cardPreviewStyle.textContent = `
+        .card-preview-section {
+            margin-top: 16px;
+        }
+        .card-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .card-preview-title {
+            font-weight: 500;
+            color: var(--text-normal);
+        }
+        .card-preview-btn-group {
+            display: flex;
+            gap: 4px;
+        }
+        .card-preview-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid var(--background-modifier-border);
+            background: var(--background-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.1s ease;
+        }
+        .card-preview-btn:hover:not(.disabled) {
+            background: var(--background-modifier-hover);
+            color: var(--text-normal);
+            border-color: var(--interactive-accent);
+        }
+        .card-preview-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .card-preview-container {
+            padding: 12px;
+            background: var(--background-secondary);
+            border-radius: 8px;
+        }
+        .card-preview {
+            position: relative;
+            display: flex;
+            height: 48px;
+            background: var(--background-primary);
+            border-radius: 6px;
+            overflow: visible;
+            border: 1px solid var(--background-modifier-border);
+        }
+        .card-preview-region {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-ui-smaller);
+            color: var(--text-muted);
+            transition: background 0.1s ease;
+            border-left: 1px dashed var(--background-modifier-border);
+        }
+        .card-preview-region:first-child {
+            border-left: none;
+        }
+        .card-preview-region:hover {
+            background: var(--background-modifier-hover);
+            color: var(--text-normal);
+        }
+        .card-preview-handle {
+            position: absolute;
+            top: -4px;
+            bottom: -4px;
+            width: 12px;
+            margin-left: -6px;
+            cursor: col-resize;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-preview-handle::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--background-modifier-border);
+            border-radius: 2px;
+            transition: all 0.15s ease;
+        }
+        .card-preview-handle:hover::before,
+        .card-preview-handle.dragging::before {
+            background: var(--interactive-accent);
+            height: 100%;
+        }
+        .no-regions-notice {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .region-commands-section {
+            margin-top: 16px;
+        }
+        .region-commands-section h4 {
+            margin: 0 0 12px 0;
+            font-size: var(--font-ui-medium);
+            font-weight: 500;
+        }
+        .command-dropdown-wrapper {
+            position: relative;
+            width: 280px;
+        }
+        .command-dropdown-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--background-modifier-border);
+            border-radius: 6px;
+            background: var(--background-primary);
+            color: var(--text-normal);
+            font-size: var(--font-ui-small);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .command-dropdown-input::placeholder {
+            color: var(--text-faint);
+        }
+        .command-dropdown-input:focus {
+            outline: none;
+            border-color: var(--interactive-accent);
+            box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+        }
+        .command-dropdown-list {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--background-primary);
+            border: 1px solid var(--background-modifier-border);
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        .command-dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: var(--font-ui-small);
+            border-bottom: 1px solid var(--background-modifier-border-hover);
+            transition: background 0.1s ease;
+        }
+        .command-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .command-dropdown-item:hover {
+            background: var(--background-modifier-hover);
+        }
+        .command-dropdown-item.is-selected {
+            background: var(--interactive-accent);
+            color: var(--text-on-accent);
+        }
+        .command-dropdown-item-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    `;
+    containerEl.appendChild(cardPreviewStyle);
 
     // ==========================================================================
     // DIAGNOSTICS

@@ -6,6 +6,8 @@ import { DEFAULT_LLM_CONFIGURATION } from '../llm/llm-types';
 import { DEFAULT_MCP_SETTINGS } from '../mcp/mcp-types';
 import { DEFAULT_PROMPT_SETTINGS } from '../llm/prompt-schema';
 import { DEFAULT_SMART_CONNECTIONS_SETTINGS } from '../smart-connections/types';
+import { DEFAULT_PROVIDERS_SETTINGS } from '../llm/providers';
+import { DEFAULT_CARD_SEGMENTATION_SETTINGS } from '../shared/types/segmented-card-types';
 
 export const DEFAULT_SETTINGS = (): Settings => ({
     features: {
@@ -67,4 +69,13 @@ export const DEFAULT_SETTINGS = (): Settings => ({
     mcp: DEFAULT_MCP_SETTINGS(),
     prompts: DEFAULT_PROMPT_SETTINGS(),
     smartConnections: DEFAULT_SMART_CONNECTIONS_SETTINGS,
+    providers: DEFAULT_PROVIDERS_SETTINGS,
+    diagnostics: {
+        llm: { status: 'untested', lastTested: null },
+        mcp: { status: 'untested', lastTested: null },
+        smartConnections: { status: 'untested', lastTested: null },
+        obsidianGit: { status: 'untested', lastTested: null },
+        dataview: { status: 'untested', lastTested: null },
+    },
+    cardSegmentation: DEFAULT_CARD_SEGMENTATION_SETTINGS,
 });

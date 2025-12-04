@@ -11,6 +11,7 @@ import { LLMSettings } from './llm-settings';
 import { MCPSettings } from './mcp-settings';
 import { PromptsSettings } from './prompts-settings';
 import { ExploreSettings } from './explore-settings';
+import { SchemaSettings } from './schema-settings';
 
 type SettingsTabId = 'general' | 'annotations' | 'stubs' | 'ai' | 'explore';
 
@@ -140,6 +141,10 @@ export class SettingsTab extends PluginSettingTab {
             plugin: this.plugin,
             containerEl: aiContent.createEl('div'),
         });
+        SchemaSettings({
+            plugin: this.plugin,
+            containerEl: aiContent.createEl('div'),
+        });
 
         // Explore tab content
         const exploreContent = contentWrapper.createEl('div', {
@@ -234,6 +239,40 @@ export class SettingsTab extends PluginSettingTab {
 
             .dd-tab-content.is-active {
                 display: block;
+            }
+
+            /* Heading hierarchy for settings */
+            .dd-tab-content h2 {
+                font-size: 1.4em;
+                font-weight: 600;
+                margin: 1.5em 0 0.5em 0;
+                padding-bottom: 0.3em;
+                border-bottom: 1px solid var(--background-modifier-border);
+            }
+
+            .dd-tab-content h2:first-child {
+                margin-top: 0;
+            }
+
+            .dd-tab-content h3 {
+                font-size: 1.15em;
+                font-weight: 600;
+                margin: 1.2em 0 0.4em 0;
+                color: var(--text-normal);
+            }
+
+            .dd-tab-content h4 {
+                font-size: 1em;
+                font-weight: 600;
+                margin: 1em 0 0.3em 0;
+                color: var(--text-muted);
+            }
+
+            .dd-tab-content h5 {
+                font-size: 0.9em;
+                font-weight: 500;
+                margin: 0.8em 0 0.2em 0;
+                color: var(--text-muted);
             }
         `;
         containerEl.prepend(style);
