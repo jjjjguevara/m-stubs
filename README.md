@@ -180,7 +180,7 @@ Some Doc Doctor features require external services or plugins. Use this table to
 | **Explore View** | Smart Connections | [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections) plugin | Keyword search |
 | **AI Integration** | LLM API Key | [Anthropic](https://console.anthropic.com/) or [OpenAI](https://platform.openai.com/) | None |
 | **Lifecycle Automation** | Obsidian Git | [Obsidian Git](https://github.com/denolehov/obsidian-git) plugin | Manual commits |
-| **MCP Server** | Rust + Claude Code | `cargo build --package doc-doctor-mcp --release` | None |
+| **MCP Server** | Claude Code (or MCP client) | Download binary from [Releases](https://github.com/jjjjguevara/doc-doctor/releases) | Build from source with Rust |
 
 ### Setup Time Estimates
 
@@ -191,7 +191,7 @@ Some Doc Doctor features require external services or plugins. Use this table to
 | Explore | ~2 min |
 | AI | ~5 min |
 | Lifecycle | ~2 min |
-| MCP | ~10 min |
+| MCP | ~2 min |
 
 ## Installation
 
