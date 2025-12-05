@@ -171,82 +171,27 @@ All features from the original Enhanced Annotations plugin remain:
 
 ## Feature Dependencies
 
-Some Doc Doctor features require external services or plugins. Use this chart to plan your setup:
+Some Doc Doctor features require external services or plugins. Use this table to plan your setup:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        DOC DOCTOR FEATURE MAP                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────────────┐                                                    │
-│  │   CORE FEATURES     │ ◄── No external dependencies                      │
-│  │   (Always Available)│                                                    │
-│  ├─────────────────────┤                                                    │
-│  │ • Stubs System      │                                                    │
-│  │ • Sidebar Panel     │                                                    │
-│  │ • Annotations       │                                                    │
-│  │ • Quick Insert (^^) │                                                    │
-│  │ • Frontmatter Sync  │                                                    │
-│  └─────────────────────┘                                                    │
-│                                                                             │
-│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
-│  │   TIME TRAVEL       │────►│ Requires: Git (CLI or Obsidian Git)      │  │
-│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
-│  │ • Document History  │     │ Option A: Obsidian Git plugin (preferred)│  │
-│  │ • Snapshot Viewer   │     │ Option B: Git CLI in system PATH         │  │
-│  │ • Milestone Commits │     │                                          │  │
-│  │ • Stacked Tab View  │     │ Setup: Just have git available           │  │
-│  └─────────────────────┘     └──────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
-│  │   EXPLORE VIEW      │────►│ Requires: Smart Connections plugin       │  │
-│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
-│  │ • Semantic Search   │     │ Install: Community Plugins → Smart       │  │
-│  │ • Related Notes     │     │          Connections                     │  │
-│  │ • Embedding-Based   │     │                                          │  │
-│  │   Discovery         │     │ Fallback: Keyword search (no plugin)     │  │
-│  └─────────────────────┘     └──────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
-│  │   AI INTEGRATION    │────►│ Requires: API Key (Anthropic or OpenAI)  │  │
-│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
-│  │ • Stub Suggestions  │     │ Anthropic: claude.ai → API Keys          │  │
-│  │ • Document Analysis │     │ OpenAI: platform.openai.com → API Keys   │  │
-│  │ • Schema-Driven     │     │                                          │  │
-│  │   Prompts           │     │ Configure: Settings → AI Integration     │  │
-│  └─────────────────────┘     └──────────────────────────────────────────┘  │
-│                                                                             │
-│                                                                             │
-│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
-│  │   LIFECYCLE/GIT     │────►│ Requires: Obsidian Git plugin            │  │
-│  │   AUTOMATION        │     ├──────────────────────────────────────────┤  │
-│  ├─────────────────────┤     │ Install: Community Plugins → Obsidian Git│  │
-│  │ • Auto-Commits      │     │                                          │  │
-│  │ • Milestone Snaps   │     │ Note: Time Travel works with CLI git,    │  │
-│  │ • Branch/Tag Ops    │     │       but automation needs the plugin    │  │
-│  └─────────────────────┘     └──────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
-│  │   MCP SERVER        │────►│ Requires: Claude Code + MCP binary       │  │
-│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
-│  │ • Batch Operations  │     │ Build: cargo build --package doc-doctor- │  │
-│  │ • Claude Code Tools │     │        mcp --release                     │  │
-│  │ • Doc Parsing       │     │                                          │  │
-│  └─────────────────────┘     └──────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| Feature | Dependency | How to Get It | Fallback |
+|:--------|:-----------|:--------------|:---------|
+| **Core** (Stubs, Sidebar, Annotations) | None | Built-in | — |
+| **Time Travel** | Git | [Obsidian Git](https://github.com/denolehov/obsidian-git) plugin (preferred) or Git CLI in PATH | None |
+| **Explore View** | Smart Connections | [Smart Connections](https://github.com/brianpetro/obsidian-smart-connections) plugin | Keyword search |
+| **AI Integration** | LLM API Key | [Anthropic](https://console.anthropic.com/) or [OpenAI](https://platform.openai.com/) | None |
+| **Lifecycle Automation** | Obsidian Git | [Obsidian Git](https://github.com/denolehov/obsidian-git) plugin | Manual commits |
+| **MCP Server** | Rust + Claude Code | `cargo build --package doc-doctor-mcp --release` | None |
 
-### Quick Setup Guide
+### Setup Time Estimates
 
-| Feature | Requirement | Setup Time |
-|:--------|:------------|:-----------|
-| **Core** | None | Instant |
-| **Time Travel** | Git CLI or Obsidian Git | ~1 min |
-| **Explore** | Smart Connections plugin | ~2 min |
-| **AI** | Anthropic/OpenAI API key | ~5 min |
-| **Lifecycle** | Obsidian Git plugin | ~2 min |
-| **MCP** | Rust + Claude Code | ~10 min |
+| Feature | Setup Time |
+|:--------|:-----------|
+| Core | Instant |
+| Time Travel | ~1 min |
+| Explore | ~2 min |
+| AI | ~5 min |
+| Lifecycle | ~2 min |
+| MCP | ~10 min |
 
 ## Installation
 
