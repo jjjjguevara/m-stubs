@@ -47,10 +47,9 @@ Doc Doctor integrates with LLMs to provide intelligent document analysis and stu
 - Document parsing, validation, and analysis tools
 - Stub manipulation and resolution workflows
 
-#### Web Search (Firecrawl)
-- Optional Firecrawl integration for external context
-- Search and scrape web content to inform stub resolution
-- Enrich documents with cited sources
+#### Web Search (Deprecated)
+- ~~Firecrawl integration~~ - Removed in favor of native LLM web search capabilities
+- Future: Direct integration with LLM provider web search tools
 
 ### Explore View (New in v0.4.0+)
 
@@ -217,13 +216,6 @@ Some Doc Doctor features require external services or plugins. Use this chart to
 │  │   Prompts           │     │ Configure: Settings → AI Integration     │  │
 │  └─────────────────────┘     └──────────────────────────────────────────┘  │
 │                                                                             │
-│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
-│  │   WEB SEARCH        │────►│ Requires: Firecrawl API Key              │  │
-│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
-│  │ • External Context  │     │ Get key: firecrawl.dev                   │  │
-│  │ • Citation Lookup   │     │                                          │  │
-│  │ • Web Scraping      │     │ Configure: Settings → AI → Firecrawl     │  │
-│  └─────────────────────┘     └──────────────────────────────────────────┘  │
 │                                                                             │
 │  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
 │  │   LIFECYCLE/GIT     │────►│ Requires: Obsidian Git plugin            │  │
@@ -253,7 +245,6 @@ Some Doc Doctor features require external services or plugins. Use this chart to
 | **Time Travel** | Git CLI or Obsidian Git | ~1 min |
 | **Explore** | Smart Connections plugin | ~2 min |
 | **AI** | Anthropic/OpenAI API key | ~5 min |
-| **Web Search** | Firecrawl API key | ~5 min |
 | **Lifecycle** | Obsidian Git plugin | ~2 min |
 | **MCP** | Rust + Claude Code | ~10 min |
 
@@ -488,7 +479,7 @@ magnitude = √(PE² + friction²)
 - **New**: Multi-provider support (Anthropic Claude, OpenAI GPT)
 - **New**: MCP server for Claude Code integration
 - **New**: Custom prompt templates for stub resolution
-- **New**: Firecrawl integration for web search and scraping
+- **Deprecated**: Firecrawl integration (removed in v0.5.0)
 - **New**: Explore view with Smart Connections integration
 - **New**: Semantic search using AI embeddings
 - **New**: Related notes discovery with configurable similarity threshold
