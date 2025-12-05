@@ -98,11 +98,24 @@ export interface ToolResult {
 // REFERENCE VERIFIER CLASS
 // =============================================================================
 
+/**
+ * Document context for self-reference detection
+ */
+export interface DocumentContext {
+    /** Document file path */
+    path: string;
+    /** Document title */
+    title: string;
+    /** Key phrases from the document (e.g., first heading, first paragraph) */
+    keyPhrases: string[];
+}
+
 export class ReferenceVerifier {
     private toolCalls: ToolCallRecord[] = [];
     private verifiedUrls: Set<string> = new Set();
     private verifiedDois: Set<string> = new Set();
     private verifiedVaultPaths: Set<string> = new Set();
+    private documentContext?: DocumentContext;
 
     /**
      * Record a tool call for later verification
@@ -130,13 +143,21 @@ export class ReferenceVerifier {
     }
 
     /**
-     * Clear recorded tool calls
+     * Set document context for self-reference detection
+     */
+    setDocumentContext(context: DocumentContext): void {
+        this.documentContext = context;
+    }
+
+    /**
+     * Clear recorded tool calls and document context
      */
     clear(): void {
         this.toolCalls = [];
         this.verifiedUrls.clear();
         this.verifiedDois.clear();
         this.verifiedVaultPaths.clear();
+        this.documentContext = undefined;
     }
 
     /**
@@ -284,13 +305,56 @@ export class ReferenceVerifier {
      * Check if reference is a self-reference (citing document content)
      */
     private isSelfReference(ref: FoundReference): boolean {
-        // Self-references typically don't have URLs/DOIs and appear to quote document content
-        // This is a heuristic - the LLM context builder explicitly warns against this
-        if (ref.type === 'citation' && !ref.reference.includes('http') && !ref.reference.includes('10.')) {
-            // Check if it looks like a quote from the document
-            // (This is a basic check - real implementation would compare against document content)
-            return false; // Let unverified handling catch these
+        // Cannot check self-reference without document context
+        if (!this.documentContext) {
+            return false;
         }
+
+        const refLower = ref.reference.toLowerCase();
+        const contextLower = ref.context?.toLowerCase() || '';
+
+        // Check 1: Vault link pointing to the document itself
+        if (ref.type === 'vault_link') {
+            const normalizedRef = this.normalizeVaultPath(ref.reference);
+            const normalizedPath = this.documentContext.path.toLowerCase().replace(/\.md$/, '');
+            if (normalizedRef === normalizedPath || normalizedRef.endsWith(normalizedPath)) {
+                return true;
+            }
+        }
+
+        // Check 2: Citation text matches document title
+        if (ref.type === 'citation') {
+            const titleLower = this.documentContext.title.toLowerCase();
+            // Exact match or high substring overlap
+            if (refLower === titleLower || refLower.includes(titleLower) || titleLower.includes(refLower)) {
+                return true;
+            }
+        }
+
+        // Check 3: Reference text contains key phrases from the document
+        for (const phrase of this.documentContext.keyPhrases) {
+            const phraseLower = phrase.toLowerCase();
+            // Only match if phrase is substantial (>15 chars) and appears in reference
+            if (phraseLower.length > 15 && (refLower.includes(phraseLower) || contextLower.includes(phraseLower))) {
+                return true;
+            }
+        }
+
+        // Check 4: Citation without URL/DOI that looks like internal quote
+        // (this is the soft check - just flag it as suspicious for now)
+        if (ref.type === 'citation' && !ref.reference.includes('http') && !ref.reference.includes('10.')) {
+            // Check for substantial word overlap with key phrases
+            const refWords = new Set(refLower.split(/\s+/).filter(w => w.length > 4));
+            for (const phrase of this.documentContext.keyPhrases) {
+                const phraseWords = new Set(phrase.toLowerCase().split(/\s+/).filter(w => w.length > 4));
+                const overlap = [...refWords].filter(w => phraseWords.has(w)).length;
+                const overlapRatio = overlap / Math.min(refWords.size, phraseWords.size);
+                if (overlapRatio > 0.5 && overlap >= 3) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

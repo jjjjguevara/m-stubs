@@ -49,6 +49,11 @@ import { refreshAllCachedModels } from './llm/model-fetch-service';
 // Schema loader for J-Editorial schema
 import { SchemaLoader } from './schema/schema-loader';
 
+// Git service and Time Travel imports
+import { createGitService, type IGitService } from './git';
+import { TIME_TRAVEL_VIEW_TYPE, TimeTravelView, createTimeTravelView } from './time-travel/time-travel-view';
+import { registerTimeTravelCommands } from './time-travel/time-travel-commands';
+
 export default class LabeledAnnotations extends Plugin {
     outline: OutlineUpdater;
     settings: Store<Settings, SettingsActions>;
@@ -61,6 +66,7 @@ export default class LabeledAnnotations extends Plugin {
     mcpTools: MCPTools | null = null;
     smartConnectionsService: SmartConnectionsService | null = null;
     schemaLoader: SchemaLoader | null = null;
+    gitService: IGitService | null = null;
     settingsTab: SettingsTab | null = null;
     private unsubscribeCallbacks: Set<() => void> = new Set();
     private syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -102,6 +108,24 @@ export default class LabeledAnnotations extends Plugin {
             (leaf) => new SidebarOutlineView(leaf, this),
         );
 
+        // Register Time Travel view
+        this.registerView(
+            TIME_TRAVEL_VIEW_TYPE,
+            (leaf) => {
+                // Create with empty snapshot - will be populated via setState
+                const emptySnapshot = {
+                    id: '',
+                    commitSha: '',
+                    commitMessage: '',
+                    author: '',
+                    timestamp: 0,
+                    documentPath: '',
+                    isMilestoneSnapshot: false,
+                };
+                return createTimeTravelView(leaf, this, emptySnapshot);
+            },
+        );
+
         this.app.workspace.onLayoutReady(async () => {
             await this.attachLeaf();
             loadOutlineStateFromSettings(this);
@@ -109,6 +133,9 @@ export default class LabeledAnnotations extends Plugin {
 
             // Initialize schema loader before settings tab
             await this.initializeSchemaLoader();
+
+            // Initialize Git service and Time Travel commands
+            await this.initializeGitService();
 
             this.settingsTab = new SettingsTab(this.app, this);
             this.addSettingTab(this.settingsTab);
@@ -370,6 +397,36 @@ export default class LabeledAnnotations extends Plugin {
             console.log(`[Doc Doctor] Schema loaded: ${source} (v${schema.version})`);
         } catch (error) {
             console.error('[Doc Doctor] Failed to initialize schema loader:', error);
+        }
+    }
+
+    /**
+     * Initialize Git Service and Time Travel commands
+     */
+    async initializeGitService(): Promise<void> {
+        try {
+            // Check if Time Travel is enabled
+            const settings = this.settings.getValue();
+            if (!settings.timeTravel?.enabled) {
+                console.log('[Doc Doctor] Time Travel is disabled in settings');
+                return;
+            }
+
+            // Create git service
+            this.gitService = createGitService(this.app);
+
+            // Check availability
+            const availability = await this.gitService.isAvailable();
+            if (availability.available) {
+                console.log(`[Doc Doctor] Git service initialized (${availability.backend})`);
+
+                // Register Time Travel commands
+                registerTimeTravelCommands(this, this.gitService);
+            } else {
+                console.log('[Doc Doctor] Git not available:', availability.error);
+            }
+        } catch (error) {
+            console.error('[Doc Doctor] Failed to initialize Git service:', error);
         }
     }
 

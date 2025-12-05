@@ -125,7 +125,8 @@ export class LLMService {
         const startTime = Date.now();
 
         try {
-            const response = await this.callProvider(systemPrompt, userPrompt);
+            // Use configured temperature for legacy analyzeDocument method
+            const response = await this.callProvider(systemPrompt, userPrompt, this.config.temperature);
             const duration = Date.now() - startTime;
 
             // Parse and validate response
@@ -237,14 +238,8 @@ export class LLMService {
         const startTime = Date.now();
 
         try {
-            // Store original temperature and use effective temperature
-            const originalTemp = this.config.temperature;
-            this.config.temperature = effectiveTemp;
-
-            const response = await this.callProvider(systemPrompt, userPrompt);
-
-            // Restore original temperature
-            this.config.temperature = originalTemp;
+            // Pass effective temperature directly to avoid mutating shared config
+            const response = await this.callProvider(systemPrompt, userPrompt, effectiveTemp);
 
             const duration = Date.now() - startTime;
 
@@ -430,20 +425,20 @@ export class LLMService {
     // PROVIDER-SPECIFIC IMPLEMENTATIONS
     // =========================================================================
 
-    private async callProvider(systemPrompt: string, userPrompt: string): Promise<unknown> {
+    private async callProvider(systemPrompt: string, userPrompt: string, temperature: number): Promise<unknown> {
         if (this.config.provider === 'anthropic') {
-            return this.callAnthropic(systemPrompt, userPrompt);
+            return this.callAnthropic(systemPrompt, userPrompt, temperature);
         } else if (this.config.provider === 'gemini') {
-            return this.callGemini(systemPrompt, userPrompt);
+            return this.callGemini(systemPrompt, userPrompt, temperature);
         } else {
-            return this.callOpenAI(systemPrompt, userPrompt);
+            return this.callOpenAI(systemPrompt, userPrompt, temperature);
         }
     }
 
     /**
      * Call Anthropic API
      */
-    private async callAnthropic(systemPrompt: string, userPrompt: string): Promise<unknown> {
+    private async callAnthropic(systemPrompt: string, userPrompt: string, temperature: number): Promise<unknown> {
         const requestParams: RequestUrlParam = {
             url: 'https://api.anthropic.com/v1/messages',
             method: 'POST',
@@ -455,7 +450,7 @@ export class LLMService {
             body: JSON.stringify({
                 model: this.config.model,
                 max_tokens: this.config.maxTokens,
-                temperature: this.config.temperature,
+                temperature,
                 system: systemPrompt,
                 messages: [{ role: 'user', content: userPrompt }],
             }),
@@ -489,7 +484,7 @@ export class LLMService {
     /**
      * Call OpenAI API
      */
-    private async callOpenAI(systemPrompt: string, userPrompt: string): Promise<unknown> {
+    private async callOpenAI(systemPrompt: string, userPrompt: string, temperature: number): Promise<unknown> {
         const requestParams: RequestUrlParam = {
             url: 'https://api.openai.com/v1/chat/completions',
             method: 'POST',
@@ -500,7 +495,7 @@ export class LLMService {
             body: JSON.stringify({
                 model: this.config.model,
                 max_tokens: this.config.maxTokens,
-                temperature: this.config.temperature,
+                temperature,
                 response_format: { type: 'json_object' },
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -537,7 +532,7 @@ export class LLMService {
     /**
      * Call Google Gemini API
      */
-    private async callGemini(systemPrompt: string, userPrompt: string): Promise<unknown> {
+    private async callGemini(systemPrompt: string, userPrompt: string, temperature: number): Promise<unknown> {
         const model = this.config.model || 'gemini-1.5-flash';
         const requestParams: RequestUrlParam = {
             url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`,
@@ -551,7 +546,7 @@ export class LLMService {
                 }],
                 generationConfig: {
                     maxOutputTokens: this.config.maxTokens,
-                    temperature: this.config.temperature,
+                    temperature,
                     responseMimeType: 'application/json',
                 },
             }),

@@ -1,3 +1,6 @@
+/* Time Travel View */
+@import './time-travel/time-travel-styles.css';
+
 .enhanced-annotations__enable-decoration {
     .cm-highlight {
         background-color: transparent !important;

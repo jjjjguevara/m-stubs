@@ -73,6 +73,60 @@ Semantic search and related notes discovery powered by [Smart Connections](https
 - **Draggable Handles**: Resize regions with visual drag handles
 - **Preset Layouts**: Choose from Equal 4, Equal 5, Asymmetric, or Custom
 
+### Time Travel (New in v0.5.0)
+
+View historical snapshots of your documents through git history. Navigate through document evolution with read-only views of past versions.
+
+#### Git History Navigation
+- **Milestone Snapshots**: View commits matching milestone patterns (draft:, research:, milestone:, publication:)
+- **All Commits Mode**: Optionally view every commit for a document
+- **Multi-Select**: Open multiple snapshots as tabs for comparison
+- **Stacked Tabs**: Navigate horizontally through document history
+
+#### Custom Time Travel View
+- **Read-Only Rendering**: Historical content rendered with full markdown support
+- **Metadata Header**: Commit SHA, date, author, and commit message
+- **Milestone Badges**: Visual indicators for milestone-tagged commits
+- **Content at Point-in-Time**: See exact document state at each commit
+
+#### Settings & Configuration
+- **Snapshot Granularity**: Milestones only (default) or all commits
+- **Max Snapshots**: Limit results (1-50, default 10)
+- **Auto-Close Tabs**: Optionally close existing snapshots when opening new ones
+- **Tab Title Format**: Show commit message or date in tab title
+
+#### Git Service
+- **Dual Backend**: Supports Obsidian Git plugin or CLI git fallback
+- **File History**: Tracks documents across renames with `--follow`
+- **Content Retrieval**: Fetches historical content via `git show`
+
+### Lifecycle Automation (New in v0.4.3)
+
+Automate your editorial workflow with document lifecycle rules. The Lifecycle tab is your hub for orchestration, automation, and L3 workflow configuration.
+
+#### Milestones
+- **Trigger-Based Actions**: Define conditions that fire when documents reach quality thresholds
+- **Composite Triggers**: Combine multiple conditions with AND/OR logic
+- **Event Triggers**: Fire after N suggestions accepted, stubs resolved, etc.
+- **Preset Templates**: Publication Ready, Research Complete, First Draft Complete
+
+#### Git Snapshots
+- **Automatic Commits**: Create git commits when milestones are reached
+- **Branch Operations**: Create branches or tags for document milestones
+- **Obsidian Git Integration**: Works with the Obsidian Git plugin
+
+#### Milestone Consequences
+- **Refinement Bumps**: Automatically adjust refinement scores
+- **Property Changes**: Update audience, origin, or form properties
+- **Tag Mutations**: Add or remove tags when milestones trigger
+- **Stub Mutations**: Resolve or defer stubs based on conditions
+
+#### QA Sampling
+- **Power-Law Capture**: Metrics captured at 1, 2, 4, 8, 16... occurrences (80/20 rule)
+- **Provider Stats**: Track LLM performance across providers
+- **Acceptance Tracking**: Monitor suggestion acceptance rates
+- **Benchmarking Support**: Data foundation for quality analysis
+
 ### Stubs System (v0.2.0+)
 
 #### Quick Stub Insertion
@@ -115,6 +169,93 @@ All features from the original Enhanced Annotations plugin remain:
 - **Clipboard Export**: Copy comments from selected files
 - **Custom Styling**: Assign styles based on comment labels (e.g., `<!--todo: -->`)
 - **Auto-complete**: Use trigger phrases to insert labeled comments
+
+## Feature Dependencies
+
+Some Doc Doctor features require external services or plugins. Use this chart to plan your setup:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DOC DOCTOR FEATURE MAP                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────┐                                                    │
+│  │   CORE FEATURES     │ ◄── No external dependencies                      │
+│  │   (Always Available)│                                                    │
+│  ├─────────────────────┤                                                    │
+│  │ • Stubs System      │                                                    │
+│  │ • Sidebar Panel     │                                                    │
+│  │ • Annotations       │                                                    │
+│  │ • Quick Insert (^^) │                                                    │
+│  │ • Frontmatter Sync  │                                                    │
+│  └─────────────────────┘                                                    │
+│                                                                             │
+│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
+│  │   TIME TRAVEL       │────►│ Requires: Git (CLI or Obsidian Git)      │  │
+│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
+│  │ • Document History  │     │ Option A: Obsidian Git plugin (preferred)│  │
+│  │ • Snapshot Viewer   │     │ Option B: Git CLI in system PATH         │  │
+│  │ • Milestone Commits │     │                                          │  │
+│  │ • Stacked Tab View  │     │ Setup: Just have git available           │  │
+│  └─────────────────────┘     └──────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
+│  │   EXPLORE VIEW      │────►│ Requires: Smart Connections plugin       │  │
+│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
+│  │ • Semantic Search   │     │ Install: Community Plugins → Smart       │  │
+│  │ • Related Notes     │     │          Connections                     │  │
+│  │ • Embedding-Based   │     │                                          │  │
+│  │   Discovery         │     │ Fallback: Keyword search (no plugin)     │  │
+│  └─────────────────────┘     └──────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
+│  │   AI INTEGRATION    │────►│ Requires: API Key (Anthropic or OpenAI)  │  │
+│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
+│  │ • Stub Suggestions  │     │ Anthropic: claude.ai → API Keys          │  │
+│  │ • Document Analysis │     │ OpenAI: platform.openai.com → API Keys   │  │
+│  │ • Schema-Driven     │     │                                          │  │
+│  │   Prompts           │     │ Configure: Settings → AI Integration     │  │
+│  └─────────────────────┘     └──────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
+│  │   WEB SEARCH        │────►│ Requires: Firecrawl API Key              │  │
+│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
+│  │ • External Context  │     │ Get key: firecrawl.dev                   │  │
+│  │ • Citation Lookup   │     │                                          │  │
+│  │ • Web Scraping      │     │ Configure: Settings → AI → Firecrawl     │  │
+│  └─────────────────────┘     └──────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
+│  │   LIFECYCLE/GIT     │────►│ Requires: Obsidian Git plugin            │  │
+│  │   AUTOMATION        │     ├──────────────────────────────────────────┤  │
+│  ├─────────────────────┤     │ Install: Community Plugins → Obsidian Git│  │
+│  │ • Auto-Commits      │     │                                          │  │
+│  │ • Milestone Snaps   │     │ Note: Time Travel works with CLI git,    │  │
+│  │ • Branch/Tag Ops    │     │       but automation needs the plugin    │  │
+│  └─────────────────────┘     └──────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────┐     ┌──────────────────────────────────────────┐  │
+│  │   MCP SERVER        │────►│ Requires: Claude Code + MCP binary       │  │
+│  ├─────────────────────┤     ├──────────────────────────────────────────┤  │
+│  │ • Batch Operations  │     │ Build: cargo build --package doc-doctor- │  │
+│  │ • Claude Code Tools │     │        mcp --release                     │  │
+│  │ • Doc Parsing       │     │                                          │  │
+│  └─────────────────────┘     └──────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Quick Setup Guide
+
+| Feature | Requirement | Setup Time |
+|:--------|:------------|:-----------|
+| **Core** | None | Instant |
+| **Time Travel** | Git CLI or Obsidian Git | ~1 min |
+| **Explore** | Smart Connections plugin | ~2 min |
+| **AI** | Anthropic/OpenAI API key | ~5 min |
+| **Web Search** | Firecrawl API key | ~5 min |
+| **Lifecycle** | Obsidian Git plugin | ~2 min |
+| **MCP** | Rust + Claude Code | ~10 min |
 
 ## Installation
 
@@ -289,6 +430,39 @@ magnitude = √(PE² + friction²)
 
 ## Changelog
 
+### v0.5.0 (2024-12-05)
+
+#### Time Travel Feature
+- **New**: View historical document snapshots via git history
+- **New**: Custom TimeTravelView with read-only markdown rendering and metadata header
+- **New**: Snapshot selection modal with multi-select and milestone badges
+- **New**: Toggle behavior - run command again to close Time Travel and revert workspace
+- **New**: Stacked tabs mode auto-enabled for horizontal history navigation
+- **New**: Focus mode - temporarily hides other tabs during Time Travel
+- **New**: Automatic workspace restoration when closing Time Travel tabs
+
+#### Git Integration
+- **New**: Git Service layer with dual-backend support (Obsidian Git plugin + CLI fallback)
+- **New**: Milestone pattern matching for filtering commits (draft:, research:, milestone:, publication:)
+- **New**: File history tracking across renames with `--follow` flag
+- **Improved**: Enhanced MilestoneHistoryEntry with GitSnapshotResult for commit SHA capture
+- **Fixed**: Shell escaping in git commands for special characters (|, <, >, &)
+
+#### UI & Settings
+- **New**: Time Travel settings in Lifecycle tab (granularity, max snapshots, close behavior)
+- **New**: Custom tab title configuration with drag-and-drop component ordering
+- **New**: Tab title components: document name, date, time, SHA, commit message, properties
+- **New**: Navigation header updates for stacked tabs mode
+- **New**: Commands: "Time Travel: View document history" (toggleable)
+
+### v0.4.3 (2024-12-04)
+- **New**: Lifecycle settings tab - central hub for document lifecycle automation
+- **New**: Milestone system with trigger-based actions and preset templates
+- **New**: Git snapshot integration for automatic commits at milestones
+- **New**: QA Sampling with power-law capture intervals
+- **New**: Milestone consequences (refinement bumps, property changes, tag/stub mutations)
+- **New**: Composite and event-based trigger conditions
+
 ### v0.4.2 (2024-12-04)
 - **New**: J-Editorial Schema System - schema-first LLM architecture with full ontology transmission
 - **New**: Creativity Modes (Research, Review, Draft, Creative) auto-suggested from document properties
@@ -374,6 +548,6 @@ For major changes, please open an issue first to discuss the proposed changes.
 
 ---
 
-**Version**: 0.4.2
+**Version**: 0.5.0
 **Obsidian**: 0.15.0+
 **License**: MIT

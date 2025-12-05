@@ -7,6 +7,8 @@ import { PromptSettings } from '../llm/prompt-schema';
 import type { SmartConnectionsSettings } from '../smart-connections/types';
 import type { ProvidersSettings } from '../llm/providers';
 import type { CardSegmentationSettings } from '../shared/types/segmented-card-types';
+import type { MilestoneSettings } from '../observability/milestone-settings';
+import type { TimeTravelSettings } from '../time-travel/time-travel-types';
 
 export type Case = 'upper' | 'lower' | 'title';
 export type Opacity = 80 | 60 | 40 | 20;
@@ -153,4 +155,8 @@ export type Settings = {
     diagnostics: DiagnosticsState;
     /** Card segmentation settings for Explore and AI views */
     cardSegmentation: CardSegmentationSettings;
+    /** Milestone tracking and git integration */
+    milestones: MilestoneSettings;
+    /** Time Travel feature settings */
+    timeTravel: TimeTravelSettings;
 };

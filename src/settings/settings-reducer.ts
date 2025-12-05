@@ -24,6 +24,8 @@ import { PromptsSettingsActions, promptsSettingsReducer } from '../llm/prompts-s
 import { SmartConnectionsSettingsActions, smartConnectionsSettingsReducer } from '../smart-connections/settings-reducer';
 import { ProvidersSettingsActions, providersSettingsReducer } from '../llm/providers';
 import { CARD_PRESETS, type CardPreset, type CardRegion } from '../shared/types/segmented-card-types';
+import { MilestoneSettingsActions, milestoneSettingsReducer } from '../observability/milestone-settings-reducer';
+import { TimeTravelSettingsActions, timeTravelSettingsReducer } from '../time-travel/time-travel-settings-reducer';
 
 export type SettingsActions =
     | {
@@ -169,7 +171,9 @@ export type SettingsActions =
     | MCPSettingsActions
     | PromptsSettingsActions
     | SmartConnectionsSettingsActions
-    | ProvidersSettingsActions;
+    | ProvidersSettingsActions
+    | MilestoneSettingsActions
+    | TimeTravelSettingsActions;
 
 const updateState = (store: Settings, action: SettingsActions) => {
     const labels = store.decoration.styles.labels;
@@ -409,6 +413,12 @@ const updateState = (store: Settings, action: SettingsActions) => {
     } else if (action.type.startsWith('PROVIDERS_')) {
         // Delegate providers actions to providers reducer
         providersSettingsReducer(store.providers, action as ProvidersSettingsActions);
+    } else if (action.type.startsWith('MILESTONE_')) {
+        // Delegate milestone actions to milestone reducer
+        store.milestones = milestoneSettingsReducer(store.milestones, action as MilestoneSettingsActions);
+    } else if (action.type.startsWith('TIME_TRAVEL_')) {
+        // Delegate time travel actions to time travel reducer
+        store.timeTravel = timeTravelSettingsReducer(store.timeTravel, action as TimeTravelSettingsActions);
     }
 };
 export const settingsReducer = (

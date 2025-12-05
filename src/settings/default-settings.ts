@@ -8,6 +8,8 @@ import { DEFAULT_PROMPT_SETTINGS } from '../llm/prompt-schema';
 import { DEFAULT_SMART_CONNECTIONS_SETTINGS } from '../smart-connections/types';
 import { DEFAULT_PROVIDERS_SETTINGS } from '../llm/providers';
 import { DEFAULT_CARD_SEGMENTATION_SETTINGS } from '../shared/types/segmented-card-types';
+import { DEFAULT_MILESTONE_SETTINGS } from '../observability/milestone-settings';
+import { DEFAULT_TIME_TRAVEL_SETTINGS } from '../time-travel/time-travel-types';
 
 export const DEFAULT_SETTINGS = (): Settings => ({
     features: {
@@ -78,4 +80,6 @@ export const DEFAULT_SETTINGS = (): Settings => ({
         dataview: { status: 'untested', lastTested: null },
     },
     cardSegmentation: DEFAULT_CARD_SEGMENTATION_SETTINGS,
+    milestones: DEFAULT_MILESTONE_SETTINGS,
+    timeTravel: DEFAULT_TIME_TRAVEL_SETTINGS,
 });

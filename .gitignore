@@ -26,3 +26,7 @@ AGENTS.md
 .DS_Store
 temp
 .idea
+
+# Test artifacts
+benchmark-results/
+coverage/

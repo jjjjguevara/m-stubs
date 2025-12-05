@@ -1,0 +1,361 @@
+/**
+ * Time Travel View Styles
+ *
+ * Styles for the historical document snapshot viewer.
+ */
+
+/* =============================================================================
+ * VIEW CONTAINER
+ * ============================================================================= */
+
+.time-travel-view-container {
+    --time-travel-header-bg: var(--background-secondary);
+    --time-travel-border: var(--background-modifier-border);
+    --time-travel-accent: var(--interactive-accent);
+    --time-travel-warning-bg: var(--background-modifier-error);
+    --time-travel-warning-text: var(--text-error);
+}
+
+.time-travel-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* =============================================================================
+ * HEADER
+ * ============================================================================= */
+
+.time-travel-header {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    background: var(--time-travel-header-bg);
+    border-bottom: 1px solid var(--time-travel-border);
+}
+
+.time-travel-header-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.time-travel-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--time-travel-accent);
+}
+
+.time-travel-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.time-travel-date {
+    font-size: var(--font-ui-small);
+    color: var(--text-normal);
+    font-weight: var(--font-semibold);
+}
+
+.time-travel-sha {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    background: var(--background-primary);
+    padding: 2px 6px;
+    border-radius: var(--radius-s);
+    cursor: help;
+}
+
+/* =============================================================================
+ * MESSAGE ROW
+ * ============================================================================= */
+
+.time-travel-message-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.time-travel-message {
+    font-size: var(--font-ui-small);
+    color: var(--text-normal);
+    font-style: italic;
+}
+
+.time-travel-author {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+}
+
+/* =============================================================================
+ * MILESTONE BADGE
+ * ============================================================================= */
+
+.time-travel-badge-row {
+    margin-top: 8px;
+}
+
+.time-travel-milestone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--time-travel-accent);
+    color: var(--text-on-accent);
+    border-radius: var(--radius-s);
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-semibold);
+}
+
+.time-travel-milestone-badge .badge-icon {
+    display: flex;
+    align-items: center;
+}
+
+.time-travel-milestone-badge .badge-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* =============================================================================
+ * READ-ONLY BANNER
+ * ============================================================================= */
+
+.time-travel-readonly-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--background-modifier-message);
+    border-radius: var(--radius-s);
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+}
+
+.time-travel-readonly-banner .banner-icon {
+    display: flex;
+    align-items: center;
+    color: var(--text-warning);
+}
+
+.time-travel-readonly-banner .banner-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* =============================================================================
+ * CONTENT AREA
+ * ============================================================================= */
+
+.time-travel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--background-primary);
+}
+
+.time-travel-content .markdown-rendered {
+    max-width: 100%;
+}
+
+/* Ensure code blocks don't overflow */
+.time-travel-content pre {
+    overflow-x: auto;
+}
+
+/* =============================================================================
+ * ERROR STATE
+ * ============================================================================= */
+
+.time-travel-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    background: var(--background-modifier-error);
+    border-radius: var(--radius-m);
+    color: var(--text-error);
+    font-size: var(--font-ui-small);
+}
+
+.time-travel-error .error-icon {
+    display: flex;
+    align-items: center;
+}
+
+.time-travel-error .error-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* =============================================================================
+ * SELECTION MODAL
+ * ============================================================================= */
+
+.time-travel-modal {
+    max-width: 600px;
+}
+
+.time-travel-modal-content {
+    padding: 16px;
+}
+
+.time-travel-modal-description {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.time-travel-snapshot-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.time-travel-snapshot-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--background-secondary);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.time-travel-snapshot-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.time-travel-snapshot-item.is-selected {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.time-travel-snapshot-checkbox {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.time-travel-snapshot-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.time-travel-snapshot-date {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    margin-bottom: 2px;
+}
+
+.time-travel-snapshot-message {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.time-travel-snapshot-item.is-selected .time-travel-snapshot-message {
+    color: var(--text-on-accent);
+    opacity: 0.8;
+}
+
+.time-travel-snapshot-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.time-travel-snapshot-sha {
+    font-family: var(--font-monospace);
+    font-size: 10px;
+    color: var(--text-faint);
+}
+
+.time-travel-snapshot-item.is-selected .time-travel-snapshot-sha {
+    color: var(--text-on-accent);
+    opacity: 0.7;
+}
+
+.time-travel-snapshot-milestone-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-radius: var(--radius-s);
+    font-size: 10px;
+}
+
+.time-travel-snapshot-item.is-selected .time-travel-snapshot-milestone-tag {
+    background: var(--text-on-accent);
+    color: var(--interactive-accent);
+}
+
+/* =============================================================================
+ * MODAL FOOTER
+ * ============================================================================= */
+
+.time-travel-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.time-travel-selection-count {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
+}
+
+.time-travel-modal-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* =============================================================================
+ * EMPTY STATE
+ * ============================================================================= */
+
+.time-travel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.time-travel-empty-icon {
+    color: var(--text-faint);
+    margin-bottom: 12px;
+}
+
+.time-travel-empty-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+.time-travel-empty-title {
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
+    margin-bottom: 4px;
+}
+
+.time-travel-empty-description {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    max-width: 300px;
+}

@@ -12,8 +12,9 @@ import { MCPSettings } from './mcp-settings';
 import { PromptsSettings } from './prompts-settings';
 import { ExploreSettings } from './explore-settings';
 import { SchemaSettings } from './schema-settings';
+import { LifecycleSettings } from './lifecycle-settings';
 
-type SettingsTabId = 'general' | 'annotations' | 'stubs' | 'ai' | 'explore';
+type SettingsTabId = 'general' | 'annotations' | 'stubs' | 'ai' | 'explore' | 'lifecycle';
 
 interface TabDefinition {
     id: SettingsTabId;
@@ -27,6 +28,7 @@ const TABS: TabDefinition[] = [
     { id: 'stubs', name: 'Stubs', icon: 'list-todo' },
     { id: 'ai', name: 'AI', icon: 'sparkles' },
     { id: 'explore', name: 'Explore', icon: 'compass' },
+    { id: 'lifecycle', name: 'Lifecycle', icon: 'git-branch' },
 ];
 
 export class SettingsTab extends PluginSettingTab {
@@ -156,6 +158,18 @@ export class SettingsTab extends PluginSettingTab {
         ExploreSettings({
             plugin: this.plugin,
             containerEl: exploreContent.createEl('div'),
+        });
+
+        // Lifecycle tab content
+        const lifecycleContent = contentWrapper.createEl('div', {
+            cls: `dd-tab-content ${this.activeTab === 'lifecycle' ? 'is-active' : ''}`,
+            attr: { 'data-tab-content': 'lifecycle' },
+        });
+        this.contentContainers.set('lifecycle', lifecycleContent);
+
+        LifecycleSettings({
+            plugin: this.plugin,
+            containerEl: lifecycleContent.createEl('div'),
         });
     };
 

@@ -15,6 +15,10 @@ import type {
     ToolRequestOptions,
 } from './types';
 import { generateToolCallId } from './types';
+import type { FirecrawlConfig } from '../llm-types';
+import type { OpenAlexConfig } from '../providers/provider-types';
+import { FirecrawlService, getRelatedNotesFromSmartConnections } from '../firecrawl-service';
+import { OpenAlexService } from '../providers/openalex-service';
 
 // =============================================================================
 // BUILT-IN TOOL DEFINITIONS
@@ -131,6 +135,15 @@ export interface ToolOrchestratorConfig {
 
     /** Max iterations for tool use loop */
     maxIterations?: number;
+
+    /** Firecrawl configuration for web search */
+    firecrawlConfig?: FirecrawlConfig;
+
+    /** OpenAlex configuration for academic search */
+    openAlexConfig?: OpenAlexConfig;
+
+    /** Current file path for semantic search context */
+    currentFilePath?: string;
 }
 
 /**
@@ -144,9 +157,16 @@ type ToolExecutor = (args: Record<string, unknown>) => Promise<string | Record<s
 export class ToolOrchestrator {
     private app: App;
     private mcpTools?: MCPTools;
-    private config: Required<Omit<ToolOrchestratorConfig, 'app' | 'mcpTools'>>;
+    private config: Required<Omit<ToolOrchestratorConfig, 'app' | 'mcpTools' | 'firecrawlConfig' | 'openAlexConfig' | 'currentFilePath'>>;
     private customExecutors: Map<string, ToolExecutor> = new Map();
     private trackedCalls: Map<string, TrackedToolCall> = new Map();
+
+    // Service instances
+    private firecrawlService?: FirecrawlService;
+    private openAlexService?: OpenAlexService;
+    private firecrawlConfig?: FirecrawlConfig;
+    private openAlexConfig?: OpenAlexConfig;
+    private currentFilePath?: string;
 
     constructor(config: ToolOrchestratorConfig) {
         this.app = config.app;
@@ -158,6 +178,19 @@ export class ToolOrchestrator {
             defaultTimeout: config.defaultTimeout ?? 30000,
             maxIterations: config.maxIterations ?? 10,
         };
+
+        // Initialize service configs
+        this.firecrawlConfig = config.firecrawlConfig;
+        this.openAlexConfig = config.openAlexConfig;
+        this.currentFilePath = config.currentFilePath;
+
+        // Initialize services if configs provided
+        if (config.firecrawlConfig) {
+            this.firecrawlService = new FirecrawlService(config.firecrawlConfig);
+        }
+        if (config.openAlexConfig) {
+            this.openAlexService = new OpenAlexService(config.openAlexConfig);
+        }
     }
 
     /**
@@ -186,6 +219,29 @@ export class ToolOrchestrator {
         if (config.maxIterations !== undefined) {
             this.config.maxIterations = config.maxIterations;
         }
+        // Update service configs and reinitialize services
+        if (config.firecrawlConfig !== undefined) {
+            this.firecrawlConfig = config.firecrawlConfig;
+            this.firecrawlService = config.firecrawlConfig
+                ? new FirecrawlService(config.firecrawlConfig)
+                : undefined;
+        }
+        if (config.openAlexConfig !== undefined) {
+            this.openAlexConfig = config.openAlexConfig;
+            this.openAlexService = config.openAlexConfig
+                ? new OpenAlexService(config.openAlexConfig)
+                : undefined;
+        }
+        if (config.currentFilePath !== undefined) {
+            this.currentFilePath = config.currentFilePath;
+        }
+    }
+
+    /**
+     * Update current file path for semantic search context
+     */
+    setCurrentFilePath(path: string | undefined): void {
+        this.currentFilePath = path;
     }
 
     /**
@@ -446,7 +502,7 @@ export class ToolOrchestrator {
     }
 
     /**
-     * Execute web search
+     * Execute web search via Firecrawl service
      */
     private async executeWebSearch(
         args: Record<string, unknown>,
@@ -454,19 +510,51 @@ export class ToolOrchestrator {
         const query = args.query as string;
         const maxResults = (args.max_results as number) || 5;
 
-        // This would integrate with Firecrawl or another search provider
-        // For now, return a placeholder that indicates the search was requested
-        console.log(`[Tool Orchestrator] Web search requested: "${query}" (max: ${maxResults})`);
+        console.log(`[Tool Orchestrator] Web search: "${query}" (max: ${maxResults})`);
 
-        return {
-            query,
-            message: 'Web search integration pending - connect to Firecrawl service',
-            results: [],
-        };
+        // Check if Firecrawl service is available and configured
+        if (!this.firecrawlService || !this.firecrawlConfig?.enabled) {
+            return {
+                query,
+                error: 'Web search not configured. Enable Firecrawl in settings.',
+                results: [],
+            };
+        }
+
+        try {
+            const searchResults = await this.firecrawlService.search(query);
+
+            // Limit results to maxResults
+            const limitedResults = searchResults.slice(0, maxResults);
+
+            // Map to tool result format
+            const results = limitedResults.map(result => ({
+                title: result.title,
+                url: result.url,
+                snippet: result.description,
+                content: result.content,
+            }));
+
+            console.log(`[Tool Orchestrator] Web search returned ${results.length} results`);
+
+            return {
+                query,
+                success: true,
+                results,
+                resultCount: results.length,
+            };
+        } catch (error) {
+            console.error('[Tool Orchestrator] Web search error:', error);
+            return {
+                query,
+                error: `Web search failed: ${(error as Error).message}`,
+                results: [],
+            };
+        }
     }
 
     /**
-     * Execute semantic search
+     * Execute semantic search via Smart Connections plugin
      */
     private async executeSemanticSearch(
         args: Record<string, unknown>,
@@ -475,20 +563,75 @@ export class ToolOrchestrator {
         const limit = (args.limit as number) || 5;
         const excludeCurrent = (args.exclude_current as boolean) ?? true;
 
-        // This would integrate with Smart Connections or similar
-        console.log(
-            `[Tool Orchestrator] Semantic search requested: "${query}" (limit: ${limit}, exclude: ${excludeCurrent})`,
-        );
+        console.log(`[Tool Orchestrator] Semantic search: "${query}" (limit: ${limit})`);
 
-        return {
-            query,
-            message: 'Semantic search integration pending - connect to Smart Connections',
-            results: [],
-        };
+        // Check if Smart Connections integration is enabled
+        if (!this.firecrawlConfig?.smartConnectionsEnabled) {
+            return {
+                query,
+                error: 'Semantic search not enabled. Enable Smart Connections in settings.',
+                results: [],
+            };
+        }
+
+        // Need a current file path for Smart Connections to find related notes
+        const currentPath = this.currentFilePath;
+        if (!currentPath) {
+            return {
+                query,
+                error: 'No current file context for semantic search.',
+                results: [],
+            };
+        }
+
+        try {
+            // Use Smart Connections to find related notes
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const relatedNotes = await getRelatedNotesFromSmartConnections(
+                this.app as any,
+                currentPath,
+                limit + (excludeCurrent ? 1 : 0), // Request extra to account for exclusion
+            );
+
+            // Filter out current file if requested
+            let filteredResults = relatedNotes;
+            if (excludeCurrent) {
+                filteredResults = relatedNotes.filter(note => note.path !== currentPath);
+            }
+
+            // Limit to requested count
+            const limitedResults = filteredResults.slice(0, limit);
+
+            // Map to tool result format
+            const results = limitedResults.map(note => ({
+                path: note.path,
+                title: note.title,
+                similarity: note.similarity,
+            }));
+
+            console.log(`[Tool Orchestrator] Semantic search returned ${results.length} results`);
+
+            return {
+                query,
+                success: true,
+                results,
+                resultCount: results.length,
+                note: relatedNotes.length === 0
+                    ? 'Smart Connections found no related notes. Embeddings may not be indexed.'
+                    : undefined,
+            };
+        } catch (error) {
+            console.error('[Tool Orchestrator] Semantic search error:', error);
+            return {
+                query,
+                error: `Semantic search failed: ${(error as Error).message}`,
+                results: [],
+            };
+        }
     }
 
     /**
-     * Execute OpenAlex search
+     * Execute OpenAlex academic search
      */
     private async executeOpenAlexSearch(
         args: Record<string, unknown>,
@@ -497,16 +640,61 @@ export class ToolOrchestrator {
         const filter = args.filter as string | undefined;
         const maxResults = (args.max_results as number) || 5;
 
-        console.log(
-            `[Tool Orchestrator] OpenAlex search requested: "${query}" (filter: ${filter}, max: ${maxResults})`,
-        );
+        console.log(`[Tool Orchestrator] OpenAlex search: "${query}" (filter: ${filter}, max: ${maxResults})`);
 
-        return {
-            query,
-            filter,
-            message: 'OpenAlex integration pending - connect to OpenAlex API',
-            results: [],
-        };
+        // Check if OpenAlex service is available and enabled
+        if (!this.openAlexService || !this.openAlexConfig?.enabled) {
+            return {
+                query,
+                filter,
+                error: 'OpenAlex search not enabled. Enable OpenAlex in settings.',
+                results: [],
+            };
+        }
+
+        try {
+            // Build search query with optional filter
+            let searchQuery = query;
+            if (filter) {
+                searchQuery = `${query} ${filter}`;
+            }
+
+            const academicResults = await this.openAlexService.search(searchQuery);
+
+            // Limit results to maxResults
+            const limitedResults = academicResults.slice(0, maxResults);
+
+            // Map to tool result format
+            const results = limitedResults.map(result => ({
+                title: result.title,
+                authors: result.authors,
+                year: result.year,
+                doi: result.doi,
+                abstract: result.abstract,
+                citationCount: result.citationCount,
+                venue: result.venue,
+                openAccessUrl: result.openAccessUrl,
+                openAlexUrl: result.openAlexUrl,
+            }));
+
+            console.log(`[Tool Orchestrator] OpenAlex search returned ${results.length} results`);
+
+            return {
+                query,
+                filter,
+                success: true,
+                results,
+                resultCount: results.length,
+            };
+        } catch (error) {
+            console.error('[Tool Orchestrator] OpenAlex search error:', error);
+            return {
+                query,
+                filter,
+                error: `OpenAlex search failed: ${(error as Error).message}`,
+                results: [],
+            };
+        }
     }
 
     /**
